@@ -5,4 +5,4 @@ Queue.pm
 Queue.xs
 readme
 t/basic.t
-quicktest.pl
+

@@ -1,13 +1,14 @@
 README for VMS::Queue
 
-Copyright (c) 1997 Dan Sugalski
+Copyright (c) 1997, 1998 Dan Sugalski
 
 You may distribute under the terms of the Artistic License, as distributed
 with Perl.
 
-This module lets you fetch a list of queues, a list of entries running on
-those queues, get information about each queue or entry, and manipulate
-queues and queue entries.
+This module lets you fetch information on, create, and manipulate, queues,
+entries, queue managers, forms, and characteristics. If you can manipulate
+something queue-ish in DCL, or fetch the information in DCL via F$GETQUI,
+odds are you can do it at least as well (if not better) with VMS::Queue.
 
 perl Makefile.pl
 mms

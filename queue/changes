@@ -61,3 +61,34 @@ Revision history for Perl extension VMS::Queue
     - Added in code for all the create_xxx and modify_xxx functions.
       They're all the same code with minor differences, so they've been
       rolled into one ALIAS:ed XSUB. Cool.
+
+0.10  Wed Apr 01 19:30:00 1998
+    - Added yet more item codes for SNDJBC
+
+0.11  Wed Apr 01 19:45:00 1998
+    - Switched over to ALIAS for the xxx_bitmap_decode functions. More code
+      trimmed away...
+    - Switched the xxx_properties functions to an ALIAS. Snip, snip...
+    - Added the last of the sndjbc items. Whew...
+
+0.11  Thu Apr 02 14:44:13 1998
+    - More ALIAS merging.
+
+0.11  Mon May 18 15:53:43 1998
+    - Fixed up the queue properties list
+    - Added in code to specify properties for the queues you want. (Mainly
+      name, but hey, who am I to limit things?)
+
+0.11  Wed May 20 16:48:94 1998
+    - Added code to turn a hash of flag names to an integer (The reverse of
+      the decode_bitmap function)
+
+0.12  Thu May 21 9:55:04 1998
+    - Added code to specify properties for entries
+    - Bumped version number
+    - Addede code to specify properties for forms, characteristics, and
+      managers.
+
+0.50  Thu May 21 10:45:43 1998
+    - Things seem functionally complete, though the docs are badly lacking.
+      Bumping the version number and making a distribution.

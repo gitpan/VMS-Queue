@@ -141,6 +141,15 @@ typedef struct {char  *ItemName;         /* Name of the item we're getting */
         {#a, QUI$_##a, SJC$_##a, b, c, SNDJBC_PARAM | GETQUI_PARAM, \
            d, e, f}
 
+/* Macro to expand out entries for generic_bitmap_encode */
+#define BME_Q(a) { if (!strncmp(FlagName, #a, FlagLen)) { \
+                       EncodedValue = EncodedValue | QUI$M_##a; \
+                       break; \
+                     } \
+                 }
+                     
+
+   
 #define QUI$M_ 0
 
 struct MondoQueueInfoID {
@@ -335,13 +344,13 @@ struct MondoQueueInfoID MondoQueueInfoList[] =
                OBJECT_QUEUE, S_ANY),
   GETQUI_ENTRY(SCSNODE_NAME, 6, IS_STRING, OUTPUT_INFO, OBJECT_MANAGER,
                S_ANY),
-  GETQUI_ENTRY(SEARCH_FLAGS, 4, IS_LONGWORD, INPUT_INFO, 
+  GETQUI_ENTRY(SEARCH_FLAGS, 4, IS_BITMAP, INPUT_INFO, 
                OBJECT_QUEUE | OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR |
                OBJECT_ENTRY, S_ANY),
   GETQUI_ENTRY(SEARCH_JOB_NAME, 39, IS_STRING, INPUT_INFO, OBJECT_ENTRY,
                S_ANY),
   GETQUI_ENTRY(SEARCH_NAME, 31, IS_STRING, INPUT_INFO, OBJECT_QUEUE |
-               OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR,),
+               OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR, S_ANY),
   GETQUI_ENTRY(SEARCH_NUMBER, 4, IS_LONGWORD, INPUT_INFO, OBJECT_CHAR |
                OBJECT_ENTRY | OBJECT_FORM, S_ANY),
   GETQUI_ENTRY(SEARCH_USERNAME, 12, IS_STRING, INPUT_INFO, OBJECT_ENTRY,
@@ -471,22 +480,145 @@ struct MondoQueueInfoID MondoQueueInfoList[] =
                S_ANY),
   SNDJBC_ENTRY(JOB_COPIES, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_ENTRY,
                S_ANY ),
-  /*SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),
-  SNDJBC_ENTRY(,,,,,),*/
+  SNDJBC_ENTRY(JOB_DEFAULT_RETAIN, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_ERROR_RETAIN, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_FLAG, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_FLAG, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(JOB_LIMIT, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_NAME, 39, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(JOB_RESET_MODULES, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_RESET_MODULES, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(JOB_RETAIN, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(JOB_RETAIN_TIME, 8, IS_VMSDATE, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_SIZE_MAXIMUM, 4, IS_LONGWORD, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_SIZE_MAXIMUM, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_SIZE_MINIMUM, 4, IS_LONGWORD, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_SIZE_MINIMUM, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_SIZE_SCHEDULING, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_SIZE_SCHEDULING, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(JOB_TRAILER, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_JOB_TRAILER, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(LAST_PAGE, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(NO_LAST_PAGE, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(LIBRARY_SPECIFICATION, 39, IS_STRING, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_LIBRARY_SPECIFICATION, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(LOG_DELETE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_LOG_DELETE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(LOG_QUEUE, 31, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(LOG_SPECIFICATION, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_LOG_SPECIFICATION, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(LOG_SPOOL, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_LOG_SPOOL, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(LOWERCASE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_LOWERCASE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NEXT_JOB, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NOTE, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_NOTE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NOTIFY, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_NOTIFY, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(OPEN_QUEUE, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(OPERATOR_REQUEST, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_OPERATOR_REQUEST, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY,
+               S_ANY),
+  SNDJBC_ENTRY(OWNER_UIC, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(PAGE_HEADER, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_PAGE_HEADER, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(PAGE_SETUP_MODULES, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_FORM, S_ANY),
+  SNDJBC_ENTRY(NO_PAGE_SETUP_MODULES, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_FORM, S_ANY),
+  SNDJBC_ENTRY(PAGINATE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY |
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_PAGINATE, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY |
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_1, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_2, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_3, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_4, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_5, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_6, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_7, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PARAMETER_8, 255, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_PARAMETERS, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PASSALL, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_PASSALL, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PRINTER, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(PRIORITY, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(PROCESSOR, 255, IS_STRING, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_PROCESSOR, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(PROTECTION, 4, IS_BOOL, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
   SNDJBC_ENTRY(QUEUE, 31, IS_STRING, INPUT_ACTION, OBJECT_QUEUE |
                OBJECT_ENTRY, S_ANY),
-  /*SNDJBC_ENTRY(,,,,,),*/
+  SNDJBC_ENTRY(QUEUE_DESCRIPTION, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_QUEUE_DESCRIPTION, 4, IS_BOOL, INPUT_ACTION,
+               OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(QUEUE_DIRECTORY, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_MANAGER, S_ANY),
+  SNDJBC_ENTRY(QUEUE_MANAGER_NAME, 31, IS_STRING, INPUT_ACTION,
+               OBJECT_QUEUE | OBJECT_MANAGER, S_ANY),
+  SNDJBC_ENTRY(QUEUE_MANAGER_NODES, 255, IS_STRING, INPUT_ACTION,
+               OBJECT_MANAGER, S_ANY),
+  SNDJBC_ENTRY(RECORD_BLOCKING, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(NO_RECORD_BLOCKING, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(RELATIVE_PAGE, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(RESTART, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_RESTART, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(RETAIN_ALL_JOBS, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(RETAIN_ERROR_JOBS, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(NO_RETAIN_JOBS, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(SCSNODE_NAME, 6, IS_STRING, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(SEARCH_STRING, 63, IS_STRING, INPUT_ACTION, OBJECT_QUEUE,
+               S_ANY),
+  SNDJBC_ENTRY(SERVER, 4, IS_STRING, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(SWAP, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_SWAP, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(TERMINAL, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(NO_TERMINAL, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(TOP_OF_FILE, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE, S_ANY),
+  SNDJBC_ENTRY(UIC, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(USERNAME, 12, IS_STRING, INPUT_ACTION, OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(WSDEFAULT, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE |
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_WSDEFAULT, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE |
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(WSEXTENT, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE
+               | OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_WSEXTENT, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE
+               | OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(WSQUOTA, 4, IS_LONGWORD, INPUT_ACTION, OBJECT_QUEUE |
+               OBJECT_ENTRY, S_ANY),
+  SNDJBC_ENTRY(NO_WSQUOTA, 4, IS_BOOL, INPUT_ACTION, OBJECT_QUEUE |
+               OBJECT_ENTRY, S_ANY),
   {NULL, 0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -510,6 +642,55 @@ int FileItemCount = 0;
     (ile)->TradItem.buffer = (bufaddr); \
     (ile)->TradItem.retlen = (retlen_addr) ;}
 
+/* Take a pointer to a bitmap hash (like decode_bitmap gives) and turn it */
+/* into an integer */
+int
+generic_bitmap_encode(HV * FlagHV, int CodeType, int ItemCode)
+{
+  char *FlagName;
+  I32 FlagLen;
+  int EncodedValue = 0;
+
+  /* Shut Dec C up */
+  FlagName = NULL;
+
+  /* Initialize our hash iterator */
+  hv_iterinit(FlagHV);
+
+  /* Rip through the hash */
+  while (hv_iternextsv(FlagHV, &FlagName, &FlagLen)) {
+  
+    if (CodeType == GETQUI_PARAM) {
+      switch (ItemCode) {
+      case QUI$_SEARCH_FLAGS:
+        BME_Q(SEARCH_ALL_JOBS);
+        BME_Q(SEARCH_BATCH);
+        BME_Q(SEARCH_EXECUTING_JOBS);
+        BME_Q(SEARCH_FREEZE_CONTEXT);
+        BME_Q(SEARCH_GENERIC);
+        BME_Q(SEARCH_HOLDING_JOBS);
+        BME_Q(SEARCH_PENDING_JOBS);
+        BME_Q(SEARCH_PRINTER);
+        BME_Q(SEARCH_RETAINED_JOBS);
+        BME_Q(SEARCH_SERVER);
+        BME_Q(SEARCH_SYMBIONT);
+        BME_Q(SEARCH_TERMINAL);
+        BME_Q(SEARCH_THIS_JOB);
+        BME_Q(SEARCH_TIMED_RELEASE_JOBS);
+        BME_Q(SEARCH_WILDCARD);
+        break;
+      default:
+        croak("Invalid item specified");
+      }
+    } else {
+      EncodedValue = 0;
+    }
+  }
+  
+  return EncodedValue;
+  
+}
+
 /* Take a pointer to an itemlist, a hashref, and some flags, and build up */
 /* an itemlist from what's in the hashref. Buffer space for the items is */
 /* allocated, as are the length shorts and stuff. If the hash entries have */
@@ -520,28 +701,32 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
 {
   /* standard, dopey index variable */
   int i = 0, ItemListIndex = 0;
-  short DummyReturnLengths[99];
   char *TempCharPointer;
   unsigned int TempStrLen;
+  
   int TempNameLen;
+  short ItemCode;
   SV *TempSV;
   unsigned short *TempLen;
   char *TempBuffer;
   long TempLong;
   struct dsc$descriptor_s TimeStringDesc;
   int Status;
-  
+
   for(i = 0; MondoQueueInfoList[i].InfoName; i++) {
     if ((ObjectType & MondoQueueInfoList[i].UseForObject) &&
         (SysCallType & MondoQueueInfoList[i].SysCall)) {
       TempNameLen = strlen(MondoQueueInfoList[i].InfoName);
       if (hv_exists(HashRef, MondoQueueInfoList[i].InfoName, TempNameLen)) {
+        ItemCode = (SysCallType == GETQUI_PARAM ?
+                    MondoQueueInfoList[i].GetQUIValue :
+                    MondoQueueInfoList[i].SndJBCValue);
         /* Figure out some stuff. Avoids duplication, and makes the macro */
         /* expansion of init_itemlist a little easier */
         switch(MondoQueueInfoList[i].ReturnType) {
-        case IS_STRING:
           /* Quadwords are treated as strings for right now */
         case IS_QUADWORD:
+        case IS_STRING:
           TempSV = *hv_fetch(HashRef,
                              MondoQueueInfoList[i].InfoName,
                              TempNameLen, FALSE);
@@ -560,10 +745,10 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
                  MondoQueueInfoList[i].BufferLen ? TempStrLen :
                  MondoQueueInfoList[i].BufferLen, char);
           }
-          
+
           init_itemlist(&ItemList[ItemListIndex],
-                         MondoQueueInfoList[i].BufferLen,
-                        MondoQueueInfoList[i].SndJBCValue,
+                        MondoQueueInfoList[i].BufferLen,
+                        ItemCode,
                         TempBuffer,
                         TempLen);
           break;
@@ -590,15 +775,15 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
           }
           
           init_itemlist(&ItemList[ItemListIndex],
-                         MondoQueueInfoList[i].BufferLen,
-                        MondoQueueInfoList[i].SndJBCValue,
+                        MondoQueueInfoList[i].BufferLen,
+                        ItemCode,
                         TempBuffer,
                         TempLen);
           break;
 
         case IS_BOOL:
           init_itemlist(&ItemList[ItemListIndex], 0,
-                        MondoQueueInfoList[i].SndJBCValue, NULL, NULL);
+                        ItemCode, NULL, NULL);
           break;
         case IS_LONGWORD:
           TempSV = *hv_fetch(HashRef,
@@ -615,8 +800,37 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
           *TempBuffer = TempLong;
           
           init_itemlist(&ItemList[ItemListIndex],
-                         MondoQueueInfoList[i].BufferLen,
-                        MondoQueueInfoList[i].SndJBCValue,
+                        MondoQueueInfoList[i].BufferLen,
+                        ItemCode,
+                        TempBuffer,
+                        TempLen);
+          break;
+
+        case IS_BITMAP:
+          TempSV = *hv_fetch(HashRef,
+                             MondoQueueInfoList[i].InfoName,
+                             TempNameLen, FALSE);
+
+          /* Is the SV an integer? If so, then we'll use that value. */
+          /* Otherwise we'll assume that it's a hashref of the sort that */
+          /* generic_bitmap_decode gives */
+          if (SvIOK(TempSV)) {
+            TempLong = SvIVX(TempSV);
+          } else {
+            TempLong = generic_bitmap_encode((HV *)SvRV(TempSV), SysCallType, ItemCode);
+          }
+
+          /* Allocate us some buffer space */
+          New(NULL, TempBuffer, MondoQueueInfoList[i].BufferLen, char);
+          Newz(NULL, TempLen, 1, unsigned short);
+
+
+          /* Set the value */
+          *TempBuffer = TempLong;
+          
+          init_itemlist(&ItemList[ItemListIndex],
+                        MondoQueueInfoList[i].BufferLen,
+                        ItemCode,
                         TempBuffer,
                         TempLen);
           break;
@@ -751,67 +965,11 @@ decode_jbc(int JBC_To_Decode) {
     return("Job is currently executing");
   case JBC$_INCDSTQUE:
     return("Destination queue type inconsistent with requested operation");
-/*  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return("");
-  case JBC$_:
-    return(""); */
   default:
     return("Dunno");
   }
 }
-
+  
 SV *
 generic_bitmap_decode(char *InfoName, int BitmapValue)
 {
@@ -1288,15 +1446,15 @@ queue_list(...)
   char QueueNameBuffer[255];
   short QueueNameBufferReturnLength;
   iosb QueueIOSB;
-  int QUIIndex;
+  int QUIIndex, ItemsAdded, GottaFree;
   
   /* First, zero out as much of the array as we're using */
-  Zero(&QueueScanItemList, items == 0 ? 3: (items / 2) + 2, ITMLST);
+  Zero(&QueueScanItemList, items == 0 ? 3: 99, ITMLST);
 
-  /* First check to see if things are wildly wrong (i.e. an odd number of */
+  /* First check to see if things are wildly wrong (i.e. wrong number of */
   /* items) */
-  if (items & 1) {
-    croak("Odd number of paramters passed!");
+  if (items > 1) {
+    croak("Max one hash ref!");
   }
 
   /* The first item's always the queue name, as that's what we're looking */
@@ -1311,39 +1469,38 @@ queue_list(...)
     /* can get our hands on */
     init_itemlist(&QueueScanItemList[1], 1, QUI$_SEARCH_NAME,
                   WildcardSearchName, &WildcardSearchNameReturnLength);
+    GottaFree = FALSE;
   } else {
-    int i;
-    for(i = 1; i <= (items / 2); i++) {
-      /* Proceed only if we can decode the results */
-      if (-1 != (QUIIndex = name_to_index(SvPV(ST((i-1) * 2), na)))) {
-        /* Each possible type needs to be handled */
-        switch(MondoQueueInfoList[QUIIndex].ReturnType) {
-        case IS_STRING:
-        case IS_LONGWORD:
-        case IS_VMSDATE:
-        case IS_BITMAP:
-        case IS_ENUM:
-        default:
-          break;
-        }
-      } else {
-        croak("Invalid property!");
-      }
-    }
+    /* Call build_itemlist here... */
+    ItemsAdded = build_itemlist(QueueScanItemList + 1, (HV *)SvRV(ST(0)),
+                                GETQUI_PARAM, OBJECT_QUEUE);
+    GottaFree = TRUE;
   }
-  
+
   /* Call $GETQUI in wildcard mode */
   status = sys$getquiw(0, QUI$_DISPLAY_QUEUE, &QueueContext,
                        QueueScanItemList, &QueueIOSB, NULL, 0);
-  /* We just loop as long as things are OK */
-  while ((status == SS$_NORMAL) && (QueueIOSB.sts == JBC$_NORMAL)) {
-    /* Stick the returned value on the return stack */
-    XPUSHs(sv_2mortal(newSVpv(QueueNameBuffer,
-                              QueueNameBufferReturnLength)));
-    
-    /* Call again */
-    status = sys$getquiw(0, QUI$_DISPLAY_QUEUE, &QueueContext,
-                         QueueScanItemList, &QueueIOSB, NULL, 0);
+
+  /* Did it fail somehow? */
+  if (status != SS$_NORMAL) {
+    XPUSHs(&sv_undef);
+    SETERRNO(EVMSERR, status);
+  } else {
+    /* We just loop as long as things are OK */
+    while ((status == SS$_NORMAL) && (QueueIOSB.sts == JBC$_NORMAL)) {
+      /* Stick the returned value on the return stack */
+      XPUSHs(sv_2mortal(newSVpv(QueueNameBuffer,
+                                QueueNameBufferReturnLength)));
+      
+      /* Call again */
+      status = sys$getquiw(0, QUI$_DISPLAY_QUEUE, &QueueContext,
+                           QueueScanItemList, &QueueIOSB, NULL, 0);
+    }
+  }
+   
+  /* We're done. Do we need to free things up? */
+  if (GottaFree) {
+    tear_down_itemlist(&QueueScanItemList[1], ItemsAdded);
   }
 }
 
@@ -1369,7 +1526,8 @@ entry_list(...)
   char QueueNameBuffer[255];
   short QueueNameBufferReturnLength;
   iosb QueueIOSB;
-
+  int GottaFreeQueue, QueueItemsAdded;
+  
   /* variables for the entries*/
   ITMLST EntryScanItemList[99]; /* Yes, this should be a pointer and the */
                                 /* memory should be dynamically */
@@ -1384,36 +1542,52 @@ entry_list(...)
   char WildcardUserName[] = "*";
   short WildcardUserNameReturnLength;
   iosb EntryIOSB;
-
+  int GottaFreeEntry, EntryItemsAdded;
+  
 
   /* First, zero out as much of the arrays as we're using */
-  Zero(&QueueScanItemList, items == 0 ? 3: items, ITMLST);
-  Zero(&EntryScanItemList, items == 0 ? 3: items, ITMLST);  
+  Zero(&QueueScanItemList, items < 2 ? 3: 99, ITMLST);
+  Zero(&EntryScanItemList, items < 1 ? 3: 99, ITMLST);  
   
-  /* Did they pass us anything? */
-  if (items == 0) {
+  /* Did they pass us anything? and was it real? */
+  if ((items > 0) && (ST(0) != &sv_undef)) {
 
-    /* Fill in the 'loop through the queues' item list */
-    init_itemlist(&QueueScanItemList[0], 1, QUI$_SEARCH_NAME,
-                  WildcardSearchName, &WildcardSearchNameReturnLength);
-    init_itemlist(&QueueScanItemList[1], 255, QUI$_QUEUE_NAME,
-                  QueueNameBuffer, &QueueNameBufferReturnLength);
+    /* Call build_itemlist here... */
+    EntryItemsAdded = build_itemlist(EntryScanItemList + 1, (HV *)SvRV(ST(0)),
+                                GETQUI_PARAM, OBJECT_ENTRY);
+    GottaFreeEntry = TRUE;
   } else {
-  }
-  
-  /* Did they pass us anything? */
-  if (items == 0) {
-
     /* Fill in the item list. Right now we just return all the entries we */
     /* can get our hands on */
-    init_itemlist(&EntryScanItemList[0], sizeof(WildcardSearchFlags),
+    init_itemlist(&EntryScanItemList[1], sizeof(WildcardSearchFlags),
                   QUI$_SEARCH_FLAGS, &WildcardSearchFlags,
                   &WildcardSearchFlagsReturnLength);
-    init_itemlist(&EntryScanItemList[1], sizeof(EntryNumber),
-                  QUI$_ENTRY_NUMBER, &EntryNumber,
-                  &EntryNumberReturnLength);
-  } else {
+    GottaFreeEntry = FALSE;
   }
+  /* We always want the entry number */
+  init_itemlist(&EntryScanItemList[0], sizeof(EntryNumber),
+                QUI$_ENTRY_NUMBER, &EntryNumber,
+                &EntryNumberReturnLength);
+
+  /* Did they pass us an entry? And was it meaningful? */
+  if ((items > 1) && (ST(1) != &sv_undef)) {
+    printf("Adding queue props\n");
+    /* Call build_itemlist here... */
+    QueueItemsAdded = build_itemlist(QueueScanItemList + 1, (HV *)SvRV(ST(1)),
+                                GETQUI_PARAM, OBJECT_QUEUE);
+    printf("Added %i\n", QueueItemsAdded);
+    GottaFreeQueue = TRUE;
+
+  } else {
+    /* Fill in the 'loop through the queues' item list */
+    init_itemlist(&QueueScanItemList[1], 1, QUI$_SEARCH_NAME,
+                  WildcardSearchName, &WildcardSearchNameReturnLength);
+    GottaFreeQueue = FALSE;
+  }
+  /* We always want the name */
+  init_itemlist(&QueueScanItemList[0], 255, QUI$_QUEUE_NAME,
+                QueueNameBuffer, &QueueNameBufferReturnLength);
+  
   
   /* Call $GETQUI in wildcard mode for the queues */
   QueueStatus = sys$getquiw(0, QUI$_DISPLAY_QUEUE, &QueueContext,
@@ -1439,7 +1613,14 @@ entry_list(...)
     /* Call again */
     QueueStatus = sys$getquiw(0, QUI$_DISPLAY_QUEUE, &QueueContext,
                          QueueScanItemList, &QueueIOSB, NULL, 0);
-    
+  }
+
+  /* Now go give things back */
+  if (GottaFreeQueue) {
+    tear_down_itemlist(&QueueScanItemList[1], QueueItemsAdded);
+  }
+  if (GottaFreeEntry) {
+    tear_down_itemlist(&EntryScanItemList[1], EntryItemsAdded);
   }
 }
 
@@ -1455,7 +1636,7 @@ file_list(EntryNumber)
   /* of files. */
 
   /* variables for the entry itemlist */
-  ITMLST EntryItemList[2];
+  ITMLST EntryItemList[4];
   int EntryStatus;
   unsigned int EntryContext = -1;
   HV *FileHV;
@@ -1543,22 +1724,29 @@ form_list(...)
   int FormNumberBuffer;
   short FormNumberBufferReturnLength;
   iosb FormIOSB;
-
+  int ItemsAdded, GottaFree;
+  
   /* First, zero out as much of the array as we're using */
-  Zero(&FormScanItemList, items == 0 ? 3: items, ITMLST);
+  Zero(&FormScanItemList, items == 0 ? 3: 99, ITMLST);
   
   /* Did they pass us anything? */
   if (items == 0) {
 
     /* Fill in the item list. Right now we just return all the forms we */
     /* can get our hands on */
-    init_itemlist(&FormScanItemList[0], 1, QUI$_SEARCH_NAME,
+    init_itemlist(&FormScanItemList[1], 1, QUI$_SEARCH_NAME,
                   WildcardSearchName, &WildcardSearchNameReturnLength);
-    init_itemlist(&FormScanItemList[1], sizeof(FormNumberBuffer),
-                  QUI$_FORM_NUMBER, &FormNumberBuffer,
-                  &FormNumberBufferReturnLength);
+    GottaFree = FALSE;
   } else {
+    /* Call build_itemlist here... */
+    ItemsAdded = build_itemlist(FormScanItemList + 1, (HV *)SvRV(ST(0)),
+                                GETQUI_PARAM, OBJECT_FORM);
+    GottaFree = TRUE;
   }
+  /* Always want this */
+  init_itemlist(&FormScanItemList[0], sizeof(FormNumberBuffer),
+                QUI$_FORM_NUMBER, &FormNumberBuffer,
+                &FormNumberBufferReturnLength);
   
   /* Call $GETQUI in wildcard mode */
   status = sys$getquiw(0, QUI$_DISPLAY_FORM, &FormContext,
@@ -1571,6 +1759,10 @@ form_list(...)
     /* Call again */
     status = sys$getquiw(0, QUI$_DISPLAY_FORM, &FormContext,
                          FormScanItemList, &FormIOSB, NULL, 0);
+  }
+
+  if (GottaFree) {
+    tear_down_itemlist(&FormScanItemList[1], ItemsAdded);
   }
 }
 
@@ -1591,22 +1783,30 @@ characteristic_list(...)
   int CharacteristicNumberBuffer;
   short CharacteristicNumberBufferReturnLength;
   iosb CharacteristicIOSB;
-
+  int GottaFree, ItemsAdded;
+  
   /* First, zero out as much of the array as we're using */
-  Zero(&CharacteristicScanItemList, items == 0 ? 3: items, ITMLST);
+  Zero(&CharacteristicScanItemList, items == 0 ? 3: 99, ITMLST);
   
   /* Did they pass us anything? */
   if (items == 0) {
 
     /* Fill in the item list. Right now we just return all the */
     /* characteristics we can get our hands on */
-    init_itemlist(&CharacteristicScanItemList[0], 1, QUI$_SEARCH_NAME,
+    init_itemlist(&CharacteristicScanItemList[1], 1, QUI$_SEARCH_NAME,
                   WildcardSearchName, &WildcardSearchNameReturnLength);
-    init_itemlist(&CharacteristicScanItemList[1], 255,
-                  QUI$_CHARACTERISTIC_NUMBER, &CharacteristicNumberBuffer,
-                  &CharacteristicNumberBufferReturnLength);
+    GottaFree = FALSE;
   } else {
+    /* Call build_itemlist here... */
+    ItemsAdded = build_itemlist(CharacteristicScanItemList + 1,
+                                (HV *)SvRV(ST(0)), GETQUI_PARAM,
+                                OBJECT_CHAR);
+    GottaFree = TRUE;
   }
+  /* Always need this */
+  init_itemlist(&CharacteristicScanItemList[0], 255,
+                QUI$_CHARACTERISTIC_NUMBER, &CharacteristicNumberBuffer,
+                &CharacteristicNumberBufferReturnLength);
   
   /* Call $GETQUI in wildcard mode */
   status = sys$getquiw(0, QUI$_DISPLAY_CHARACTERISTIC,
@@ -1622,6 +1822,10 @@ characteristic_list(...)
                          &CharacteristicContext,
                          CharacteristicScanItemList, &CharacteristicIOSB,
                          NULL, 0);
+  }
+
+  if (GottaFree) {
+    tear_down_itemlist(&CharacteristicScanItemList[1], ItemsAdded);
   }
 }
 
@@ -1643,21 +1847,28 @@ manager_list(...)
   char ManagerNameBuffer[255];
   short ManagerNameBufferReturnLength;
   iosb ManagerIOSB;
-
+  int ItemsAdded, GottaFree;
+  
   /* First, zero out as much of the array as we're using */
-  Zero(&ManagerScanItemList, items == 0 ? 3: items, ITMLST);
+  Zero(&ManagerScanItemList, items == 0 ? 3: 99, ITMLST);
   
   /* Did they pass us anything? */
   if (items == 0) {
 
     /* Fill in the item list. Right now we just return all the managers we */
     /* can get our hands on */
-    init_itemlist(&ManagerScanItemList[0], 1, QUI$_SEARCH_NAME,
+    init_itemlist(&ManagerScanItemList[1], 1, QUI$_SEARCH_NAME,
                   WildcardSearchName, &WildcardSearchNameReturnLength);
-    init_itemlist(&ManagerScanItemList[1], 255, QUI$_MANAGER_NAME,
-                  ManagerNameBuffer, &ManagerNameBufferReturnLength);
+    GottaFree = FALSE;
   } else {
+    /* Call build_itemlist here... */
+    ItemsAdded = build_itemlist(ManagerScanItemList + 1, (HV *)SvRV(ST(0)),
+                                GETQUI_PARAM, OBJECT_MANAGER);
+    GottaFree = TRUE;
   }
+  /* Always need the name */
+  init_itemlist(&ManagerScanItemList[0], 255, QUI$_MANAGER_NAME,
+                ManagerNameBuffer, &ManagerNameBufferReturnLength);
   
   /* Call $GETQUI in wildcard mode */
   status = sys$getquiw(0, QUI$_DISPLAY_MANAGER, &ManagerContext,
@@ -1671,6 +1882,10 @@ manager_list(...)
     /* Call again */
     status = sys$getquiw(0, QUI$_DISPLAY_MANAGER, &ManagerContext,
                          ManagerScanItemList, &ManagerIOSB, NULL, 0);
+  }
+
+  if (GottaFree) {
+    tear_down_itemlist(ManagerScanItemList + 1, ItemsAdded);
   }
 }
 
@@ -1886,109 +2101,50 @@ manager_info(ManagerName)
 
 SV *
 queue_properties()
+   ALIAS:
+     entry_properties = 1
+     file_properties = 2
+     form_properties = 3
+     characteristic_properties = 4
+     manager_properties = 5
    CODE:
 {
-  HV *QueuePropHV;
-  QueuePropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(QueuePropHV, OBJECT_QUEUE));
-}
-
-SV *
-entry_properties()
-   CODE:
-{
-  HV *EntryPropHV;
-  EntryPropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(EntryPropHV, OBJECT_ENTRY));
-}
-  
-SV *
-file_properties()
-   CODE:
-{
-  HV *FilePropHV;
-  FilePropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(FilePropHV, OBJECT_FILE));
-}
-
-SV *
-form_properties()
-   CODE:
-{
-  HV *FormPropHV;
-  FormPropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(FormPropHV, OBJECT_FORM));
-}
-
-SV *
-characteristic_properties()
-   CODE:
-{
-  HV *CharacteristicPropHV;
-  CharacteristicPropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(CharacteristicPropHV,
-                                               OBJECT_CHAR));
-}
-
-SV *
-manager_properties()
-   CODE:
-{
-  HV *ManagerPropHV;
-  ManagerPropHV = newHV();
-  ST(0) = newRV_noinc(generic_valid_properties(ManagerPropHV,
-                                               OBJECT_MANAGER));
+  int object_type;
+  HV *GenericPropHV;
+  GenericPropHV = newHV();
+  switch(ix) {
+  case 0:
+    object_type = OBJECT_QUEUE;
+    break;
+  case 1:
+    object_type = OBJECT_ENTRY;
+    break;
+  case 2:
+    object_type = OBJECT_FILE;
+    break;
+  case 3:
+    object_type = OBJECT_FORM;
+    break;
+  case 4:
+    object_type = OBJECT_CHAR;
+    break;
+  case 5:
+    object_type = OBJECT_MANAGER;
+    break;
+  }
+  ST(0) = newRV_noinc(generic_valid_properties(GenericPropHV, object_type));
 }
 
 SV *
 queue_bitmap_decode(InfoName, BitmapValue)
      char *InfoName
      int BitmapValue
-   CODE:
-{
-  ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
-}
-
-SV *
-entry_bitmap_decode(InfoName, BitmapValue)
-     char *InfoName
-     int BitmapValue
-   CODE:
-{
-  ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
-}
-
-SV *
-file_bitmap_decode(InfoName, BitmapValue)
-     char *InfoName
-     int BitmapValue
-   CODE:
-{
-  ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
-}
-
-SV *
-form_bitmap_decode(InfoName, BitmapValue)
-     char *InfoName
-     int BitmapValue
-   CODE:
-{
-  ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
-}
-
-SV *
-characteristic_bitmap_decode(InfoName, BitmapValue)
-     char *InfoName
-     int BitmapValue
-   CODE:
-{
-  ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
-}
-
-SV *
-manager_bitmap_decode(InfoName, BitmapValue)
-     char *InfoName
-     int BitmapValue
+   ALIAS:
+     entry_bitmap_decode = 1
+     file_bitmap_decode = 2
+     form_bitmap_decode = 3
+     characteristic_bitmap_decode = 4
+     manager_bitmap_decode = 5
    CODE:
 {
   ST(0) = generic_bitmap_decode(InfoName, BitmapValue);
@@ -1997,22 +2153,42 @@ manager_bitmap_decode(InfoName, BitmapValue)
 SV *
 delete_entry(EntryNumber)
      int EntryNumber
+   ALIAS:
+     hold_entry = 1
+     release_entry = 2
    CODE:
 {
   ITMLST NukeItemList[2];
   int Status;
   short ReturnLength;
   iosb KillIOSB;
-  
+  int SndJbcCode;
+
   /* Clear the item list */
   memset(NukeItemList, 0, sizeof(ITMLST) * 2);
 
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
-                &EntryNumber, &ReturnLength);
-
+  switch(ix) {
+  case 0:
+    SndJbcCode = SJC$_DELETE_JOB;
+    init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
+                  &EntryNumber, &ReturnLength);
+    break;
+  case 1:
+    SndJbcCode = SJC$_ALTER_JOB;
+    init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
+                  &EntryNumber, &ReturnLength);
+    init_itemlist(&NukeItemList[1], 0, SJC$_HOLD, NULL, NULL);
+    break;
+  case 2:
+    SndJbcCode = SJC$_ALTER_JOB;
+    init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
+                  &EntryNumber, &ReturnLength);
+    init_itemlist(&NukeItemList[1], 0, SJC$_NO_HOLD, NULL, NULL);
+    break;
+  }    
+  
   /* make the call */
-  Status = sys$sndjbcw(0, SJC$_DELETE_JOB, 0, NukeItemList, &KillIOSB,
+  Status = sys$sndjbcw(0, SndJbcCode, 0, NukeItemList, &KillIOSB,
                        NULL, NULL);
 
   /* If there's an abnormal return, then note it */
@@ -2029,82 +2205,6 @@ delete_entry(EntryNumber)
     }
   }
 }
-
-  
-SV *
-hold_entry(EntryNumber)
-     int EntryNumber
-   CODE:
-{
-  ITMLST NukeItemList[3];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 3);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
-                &EntryNumber, &ReturnLength);
-  init_itemlist(&NukeItemList[0], 0, SJC$_HOLD, NULL, NULL);
-  
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_ALTER_JOB, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
-SV *
-release_entry(EntryNumber)
-     int EntryNumber
-   CODE:
-{
-  ITMLST NukeItemList[3];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 3);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], sizeof(EntryNumber), SJC$_ENTRY_NUMBER,
-                &EntryNumber, &ReturnLength);
-  init_itemlist(&NukeItemList[0], 0, SJC$_NO_HOLD, NULL, NULL);
-  
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_ALTER_JOB, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
   
 SV *
 delete_form(FormName)
@@ -2184,48 +2284,36 @@ delete_characteristic(CharacteristicName)
 SV *
 delete_queue(QueueName)
      char *QueueName
+   ALIAS:
+     stop_queue = 1
+     pause_queue = 2
+     start_queue = 3
+     reset_queue = 4
    CODE:
 {
   ITMLST NukeItemList[2];
   int Status;
   short ReturnLength;
   iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
+  int SndJbcCode;
 
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(QueueName), SJC$_QUEUE,
-                QueueName, &ReturnLength);
-
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_DELETE_QUEUE, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
+  switch(ix) {
+  case 0:
+    SndJbcCode = SJC$_DELETE_QUEUE;
+    break;
+  case 1:
+    SndJbcCode = SJC$_STOP_QUEUE;
+    break;
+  case 2:
+    SndJbcCode = SJC$_PAUSE_QUEUE;
+    break;
+  case 3:
+    SndJbcCode = SJC$_START_QUEUE;
+    break;
+  case 4:
+    SndJbcCode = SJC$_RESET_QUEUE;
+    break;
   }
-}
-
-SV *
-stop_queue(QueueName)
-     char *QueueName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
   
   /* Clear the item list */
   memset(NukeItemList, 0, sizeof(ITMLST) * 2);
@@ -2235,115 +2323,7 @@ stop_queue(QueueName)
                 QueueName, &ReturnLength);
 
   /* make the call */
-  Status = sys$sndjbcw(0, SJC$_STOP_QUEUE, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
-SV *
-pause_queue(QueueName)
-     char *QueueName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(QueueName), SJC$_QUEUE,
-                QueueName, &ReturnLength);
-
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_PAUSE_QUEUE, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
-SV *
-start_queue(QueueName)
-     char *QueueName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(QueueName), SJC$_QUEUE,
-                QueueName, &ReturnLength);
-
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_START_QUEUE, 0, NukeItemList, &KillIOSB,
-                       NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
-SV *
-reset_queue(QueueName)
-     char *QueueName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(QueueName), SJC$_QUEUE,
-                QueueName, &ReturnLength);
-
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_RESET_QUEUE, 0, NukeItemList, &KillIOSB,
+  Status = sys$sndjbcw(0, SndJbcCode, 0, NukeItemList, &KillIOSB,
                        NULL, NULL);
 
   /* If there's an abnormal return, then note it */
@@ -2361,51 +2341,19 @@ reset_queue(QueueName)
   }
 }
   
-SV *
-delete_manager(ManagerName)
-     char *ManagerName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(ManagerName),
-                SJC$_QUEUE_MANAGER_NAME, ManagerName, &ReturnLength);
-
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_DELETE_QUEUE_MANAGER, 0, NukeItemList,
-                       &KillIOSB, NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
-  }
-}
-
 SV *
 start_manager(ManagerName)
      char *ManagerName
+   ALIAS:
+     stop_manager = 1
+     delete_manager = 2
    CODE:
 {
   ITMLST NukeItemList[2];
   int Status;
   short ReturnLength;
   iosb KillIOSB;
+  int SndJbcCode;
   
   /* Clear the item list */
   memset(NukeItemList, 0, sizeof(ITMLST) * 2);
@@ -2414,44 +2362,20 @@ start_manager(ManagerName)
   init_itemlist(&NukeItemList[0], strlen(ManagerName),
                 SJC$_QUEUE_MANAGER_NAME, ManagerName, &ReturnLength);
 
-  /* make the call */
-  Status = sys$sndjbcw(0, SJC$_START_QUEUE_MANAGER, 0, NukeItemList,
-                       &KillIOSB, NULL, NULL);
-
-  /* If there's an abnormal return, then note it */
-  if (Status != SS$_NORMAL) {
-    SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
-  } else {
-    /* We returned SS$_NORMAL. Was there another problem? */
-    if (KillIOSB.sts != JBC$_NORMAL) {
-      croak(decode_jbc(KillIOSB.sts));
-    } else {
-      /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
-    }
+  switch(ix) {
+  case 0:
+    SndJbcCode = SJC$_START_QUEUE_MANAGER;
+    break;
+  case 1:
+    SndJbcCode = SJC$_STOP_QUEUE_MANAGER;
+    break;
+  case 2:
+    SndJbcCode = SJC$_DELETE_QUEUE_MANAGER;
+    break;
   }
-}
-
-SV *
-stop_manager(ManagerName)
-     char *ManagerName
-   CODE:
-{
-  ITMLST NukeItemList[2];
-  int Status;
-  short ReturnLength;
-  iosb KillIOSB;
-  
-  /* Clear the item list */
-  memset(NukeItemList, 0, sizeof(ITMLST) * 2);
-
-  /* Fill the list in */
-  init_itemlist(&NukeItemList[0], strlen(ManagerName),
-                SJC$_QUEUE_MANAGER_NAME, ManagerName, &ReturnLength);
-
+    
   /* make the call */
-  Status = sys$sndjbcw(0, SJC$_STOP_QUEUE_MANAGER, 0, NukeItemList,
+  Status = sys$sndjbcw(0, SndJbcCode, 0, NukeItemList,
                        &KillIOSB, NULL, NULL);
 
   /* If there's an abnormal return, then note it */
@@ -2568,8 +2492,6 @@ submit(...)
   }
 
   /* Well, all the files must've entered OK. Close the job, which submits */
-/*  Status = sys$sndjbcw(NULL, SJC$_CLOSE_DELETE, NULL, NULL, &EntryIOSB, NULL,
-                       NULL);*/
   Status = sys$sndjbcw(NULL, SJC$_CLOSE_JOB, NULL, NULL, &EntryIOSB, NULL,
                        NULL);
   /* Did it fail somehow? Shouldn't, but you never know */
@@ -2593,10 +2515,10 @@ submit(...)
 void
 create_queue(...)
    ALIAS:
-   VMS::modify_queue = 1
-   VMS::modify_entry = 2
-   VMS::create_form = 3
-   VMS::create_characteristic = 4
+     modify_queue = 1
+     modify_entry = 2
+     create_form = 3
+     create_characteristic = 4
    PPCODE:
 {
   ITMLST ItemList[99]; 

@@ -28,7 +28,7 @@ require DynaLoader;
                 &delete_manager &manager_info &manager_properties
                 &manager_bitmap_decode);
 
-$VERSION = '0.10';
+$VERSION = '0.50';
 
 bootstrap VMS::Queue $VERSION;
 
@@ -86,7 +86,7 @@ Queue routines
 
 Entry routines
 
-  @ListOfEntries = entry_list([\%Entry_Properties]);
+  @ListOfEntries = entry_list([\%Entry_Properties[, \%Queue_Properties]]);
   $Status = delete_entry($Entry_Number);
   $Status = hold_entry($Entry_Number);
   $Status = release_entry($Entry_Number);
@@ -111,7 +111,7 @@ Form Routines
 
 Characteristic Routines
 
-  @ListOfCharacteristics = characteristic_list(%Characteristic_Properties);
+  @ListOfCharacteristics = characteristic_list([\%Characteristic_Properties]);
   $Status = create_characteristic(%Characteristic_Properties);
   $Status = delete_characteristic($Characteristic_Name);
   \%Characteristic_Properties = characteristic_info($Characteristic_Number);
@@ -119,7 +119,7 @@ Characteristic Routines
   \%DecodedBitmap = characteristic_bitmap_decode($AttribName, $Bitmap);
 
 Queue Manager Routines
-  @ListOfQueueManagers = manager_list(%Manager_Properties);
+  @ListOfQueueManagers = manager_list([\%Manager_Properties]);
   $Status = stop_manager($Manager_Name);
   $Status = start_manager($Manager_Name);
   $Status = delete_manager(%Manager_Properties);
@@ -293,29 +293,46 @@ This function deletes the form specified.
 
 =item form_info()
 
+Returns an form_properties hashref with all the properties for the
+specified form.
 
 =head2 Characteristic functions
 
+=item characteristic_list
 
+=item create_characteristic
+
+=item delete_characteristic
+
+=item characteristic_info
+
+=item characteristic_properties
+
+=item characteristic_bitmap_decode
 
 =head2 Manager functions
 
+=item manager_list
 
+=item stop_manager
+
+=item start_manager
+
+=item delete_manager
+
+=item manager_info
+
+=item manager_properties
+
+=item manager_bitmap_decode
 
 =head2 Property hashes
 
 There are several different property hashes that are passed around, either
-directly or by reference.
-
-=item Queue_Properties
-
-=item Entry_Properties
-
-=item Form_Properties
-
-=item Characteristic_properties
-
-=item Manager_Properties
+directly or by reference. The keys are always the symbol names as found in
+the documentation for the system calls $GETQUI and $SNDJBC, minus any
+prefix (i.e. $QUI$_ACCOUNT_NAME is ACCOUNT_NAME, and QUI$V_SEARCH_BATCH is
+SEARCH_BATCH)
 
 =head1 BUGS
 
@@ -323,14 +340,13 @@ May leak memory. May not, though.
 
 =head1 LIMITATIONS
 
-The documentation isn't finished. (Hey, it's 0.10)
+The documentation isn't finished. (Hey, it's 0.12)
 
 There's a very limited amount of error checking at the moment. If you try
 to modify something with a parameter that's for creation only (or vice
 versa), the syscall will fail and the function will C<croak()>. 
 
-The optional hash for the xxx_list isn't used. (Don't pass it--things'll
-screw up)
+The test suite's of limited utility.(Okay, it doesn't test anything really)
 
 =head1 AUTHOR
 
@@ -338,6 +354,6 @@ Dan Sugalski <sugalskd@ous.edu>
 
 =head1 SEE ALSO
 
-perl(1)
+perl(1), VMS System Services Reference Guide, SNDJBC and GETQUI entries.
 
 =cut
