@@ -92,3 +92,8 @@ Revision history for Perl extension VMS::Queue
 0.50  Thu May 21 10:45:43 1998
     - Things seem functionally complete, though the docs are badly lacking.
       Bumping the version number and making a distribution.
+
+0.51  Mon Oct 26 11:56:21 1998
+    - Symbiont queues were being skipped. Now they're not.
+    - Array offsets were getting scrabled a bit, and the queue_info function
+      was using the wrong length for string returns.

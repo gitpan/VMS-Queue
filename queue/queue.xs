@@ -117,9 +117,10 @@ typedef struct {char  *ItemName;         /* Name of the item we're getting */
 #define S_QUEUE_BATCH    (1<<1)
 #define S_QUEUE_PRINTER  (1<<2)
 #define S_QUEUE_TERMINAL (1<<3)
+#define S_QUEUE_SERVER   (1<<9)
 #define S_QUEUE_OUTPUT   (S_QUEUE_PRINTER | S_QUEUE_TERMINAL)
 #define S_QUEUE_ANY      (S_QUEUE_GENERIC | S_QUEUE_BATCH | S_QUEUE_PRINTER \
-                          | S_QUEUE_TERMINAL)
+                          | S_QUEUE_TERMINAL | S_QUEUE_SERVER)
 #define S_ENTRY_BATCH    (1<<4)
 #define S_ENTRY_PRINT    (1<<5)
 #define S_ENTRY_DONE     (1<<6)
@@ -1294,7 +1295,7 @@ generic_getqui_call(ITMLST *ListOItems, int ObjectType, int InfoCount,
       OurDataList[LocalIndex].ItemName =
         MondoQueueInfoList[i].InfoName;
       OurDataList[LocalIndex].ReturnLength =
-        &ReturnLengths[LocalIndex - PrefilledSlots];
+        &ReturnLengths[LocalIndex];
       OurDataList[LocalIndex].ReturnType =
         MondoQueueInfoList[i].ReturnType;
       OurDataList[LocalIndex].ItemListEntry = i;
@@ -1343,7 +1344,7 @@ generic_getqui_call(ITMLST *ListOItems, int ObjectType, int InfoCount,
           hv_store(AllPurposeHV, OurDataList[i].ItemName,
                    strlen(OurDataList[i].ItemName),
                    newSVpv(OurDataList[i].ReturnBuffer,
-                           *OurDataList[i].ReturnLength), 0);
+                           *(OurDataList[i].ReturnLength)), 0);
         } else {
           hv_store(AllPurposeHV, OurDataList[i].ItemName,
                    strlen(OurDataList[i].ItemName),
@@ -1934,7 +1935,8 @@ queue_info(QueueName)
       SubType |= S_QUEUE_PRINTER;
     if (QueueFlags & QUI$M_QUEUE_TERMINAL)
       SubType |= S_QUEUE_TERMINAL;
-
+    if (QueueFlags & QUI$M_QUEUE_GENERIC_SELECTION)
+      SubType |= S_QUEUE_SERVER;
     
     /* Make the call to the generic fetcher and make it the return */
     /* value. We don't need to go messing with the item list, since what we */
