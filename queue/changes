@@ -97,3 +97,8 @@ Revision history for Perl extension VMS::Queue
     - Symbiont queues were being skipped. Now they're not.
     - Array offsets were getting scrabled a bit, and the queue_info function
       was using the wrong length for string returns.
+
+0.52  Fri Nov 13 12:25:03 1998
+    - Added in some more code to avoid skipping queues. Now there's a
+      generic "I'm a queue" flag that all queues get, so we return some
+      info even for queues whose type we don't recognize.

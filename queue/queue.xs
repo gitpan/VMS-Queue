@@ -1,7 +1,7 @@
 /* VMS::Queue - Get a list of Queues, or manage Queues
  *
  * Version: 0.01
- * Author:  Dan Sugalski <sugalsks@osshe.edu>
+ * Author:  Dan Sugalski <sugalskd@osshe.edu>
  * Revised: 05-Dec-1997
  *
  *
@@ -118,9 +118,11 @@ typedef struct {char  *ItemName;         /* Name of the item we're getting */
 #define S_QUEUE_PRINTER  (1<<2)
 #define S_QUEUE_TERMINAL (1<<3)
 #define S_QUEUE_SERVER   (1<<9)
+#define S_QUEUE_ISAQUEUE (1<<10)       /* It's a queue of some sort */
 #define S_QUEUE_OUTPUT   (S_QUEUE_PRINTER | S_QUEUE_TERMINAL)
 #define S_QUEUE_ANY      (S_QUEUE_GENERIC | S_QUEUE_BATCH | S_QUEUE_PRINTER \
-                          | S_QUEUE_TERMINAL | S_QUEUE_SERVER)
+                          | S_QUEUE_TERMINAL | S_QUEUE_SERVER \
+                          | S_QUEUE_ISAQUEUE)
 #define S_ENTRY_BATCH    (1<<4)
 #define S_ENTRY_PRINT    (1<<5)
 #define S_ENTRY_DONE     (1<<6)
@@ -1926,7 +1928,7 @@ queue_info(QueueName)
                        &QueueIOSB, NULL, NULL);
   if (Status == SS$_NORMAL) {
     /* First, figure out the flag */
-    SubType = 0;
+    SubType = S_QUEUE_ISAQUEUE;
     if (QueueFlags & QUI$M_QUEUE_BATCH)
       SubType |= S_QUEUE_BATCH;
     if (QueueFlags & QUI$M_QUEUE_GENERIC)
