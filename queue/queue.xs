@@ -1574,11 +1574,9 @@ entry_list(...)
 
   /* Did they pass us an entry? And was it meaningful? */
   if ((items > 1) && (ST(1) != &sv_undef)) {
-    printf("Adding queue props\n");
     /* Call build_itemlist here... */
     QueueItemsAdded = build_itemlist(QueueScanItemList + 1, (HV *)SvRV(ST(1)),
                                 GETQUI_PARAM, OBJECT_QUEUE);
-    printf("Added %i\n", QueueItemsAdded);
     GottaFreeQueue = TRUE;
 
   } else {

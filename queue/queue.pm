@@ -28,7 +28,7 @@ require DynaLoader;
                 &delete_manager &manager_info &manager_properties
                 &manager_bitmap_decode);
 
-$VERSION = '0.52';
+$VERSION = '0.53';
 
 bootstrap VMS::Queue $VERSION;
 

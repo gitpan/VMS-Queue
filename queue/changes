@@ -102,3 +102,6 @@ Revision history for Perl extension VMS::Queue
     - Added in some more code to avoid skipping queues. Now there's a
       generic "I'm a queue" flag that all queues get, so we return some
       info even for queues whose type we don't recognize.
+
+0.53  Fri Nov 20 9:33:03 1998
+    - Took out some debugging code that'd been left in.
