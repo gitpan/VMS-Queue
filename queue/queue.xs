@@ -153,7 +153,7 @@ typedef struct {char  *ItemName;         /* Name of the item we're getting */
                      
 
    
-#define QUI$M_ 0
+/*#define QUI$M_ 0*/
 
 struct MondoQueueInfoID {
   char *InfoName; /* Pointer to the item name */
@@ -345,15 +345,15 @@ struct MondoQueueInfoID MondoQueueInfoList[] =
                OBJECT_ENTRY, S_ANY),
   GETQUI_ENTRY(RETAINED_JOB_COUNT, 4, IS_STRING, OUTPUT_INFO,
                OBJECT_QUEUE, S_ANY),
-  GETQUI_ENTRY(SCSNODE_NAME, 6, IS_STRING, OUTPUT_INFO, OBJECT_MANAGER,
-               S_ANY),
-  GETQUI_ENTRY(SEARCH_FLAGS, 4, IS_BITMAP, INPUT_INFO, 
-               OBJECT_QUEUE | OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR |
-               OBJECT_ENTRY, S_ANY),
+  GETQUI_ENTRY(SCSNODE_NAME, 6, IS_STRING, OUTPUT_INFO, OBJECT_MANAGER |
+               OBJECT_QUEUE, S_ANY),
   GETQUI_ENTRY(SEARCH_JOB_NAME, 39, IS_STRING, INPUT_INFO, OBJECT_ENTRY,
                S_ANY),
   GETQUI_ENTRY(SEARCH_NAME, 31, IS_STRING, INPUT_INFO, OBJECT_QUEUE |
                OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR, S_ANY),
+  GETQUI_ENTRY(SEARCH_FLAGS, 4, IS_BITMAP, INPUT_INFO, 
+               OBJECT_QUEUE | OBJECT_MANAGER | OBJECT_FORM | OBJECT_CHAR |
+               OBJECT_ENTRY, S_ANY),
   GETQUI_ENTRY(SEARCH_NUMBER, 4, IS_LONGWORD, INPUT_INFO, OBJECT_CHAR |
                OBJECT_ENTRY | OBJECT_FORM, S_ANY),
   GETQUI_ENTRY(SEARCH_USERNAME, 12, IS_STRING, INPUT_INFO, OBJECT_ENTRY,
@@ -662,7 +662,7 @@ generic_bitmap_encode(HV * FlagHV, int CodeType, int ItemCode)
 
   /* Rip through the hash */
   while (hv_iternextsv(FlagHV, &FlagName, &FlagLen)) {
-  
+    
     if (CodeType == GETQUI_PARAM) {
       switch (ItemCode) {
       case QUI$_SEARCH_FLAGS:
@@ -711,6 +711,7 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
   short ItemCode;
   SV *TempSV;
   unsigned short *TempLen;
+  unsigned short work_length;
   char *TempBuffer;
   long TempLong;
   struct dsc$descriptor_s TimeStringDesc;
@@ -739,18 +740,30 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
           New(NULL, TempBuffer, MondoQueueInfoList[i].BufferLen, char);
           Newz(NULL, TempLen, 1, unsigned short);
 
+          /* By default, our length is the length of the buffer we allocate */
+          *TempLen =  MondoQueueInfoList[i].BufferLen;
+          work_length = MondoQueueInfoList[i].BufferLen;
+          
           /* Set the string buffer to spaces */
           memset(TempBuffer, ' ', MondoQueueInfoList[i].BufferLen);
           
-          /* If there was something in the SV, then copy it over */
-          if (TempStrLen) {
-            Copy(TempCharPointer, TempBuffer, TempStrLen <
-                 MondoQueueInfoList[i].BufferLen ? TempStrLen :
-                 MondoQueueInfoList[i].BufferLen, char);
+          /* If there was something in the SV, and we want to tell VMS, */
+          /* then copy it over */
+          if (TempStrLen > 0 && ((MondoQueueInfoList[i].InOrOut &
+                                 INPUT_INFO) ||
+                                (MondoQueueInfoList[i].InOrOut &
+                                 INPUT_ACTION))) {
+            /* Note the length of the data we actually copied over */
+            work_length = TempStrLen <
+              MondoQueueInfoList[i].BufferLen ? TempStrLen :
+                MondoQueueInfoList[i].BufferLen;
+            *TempLen = work_length;
+            /* Copy it. (Duh...) */
+            Copy(TempCharPointer, TempBuffer, work_length, char);
           }
 
           init_itemlist(&ItemList[ItemListIndex],
-                        MondoQueueInfoList[i].BufferLen,
+                        work_length,
                         ItemCode,
                         TempBuffer,
                         TempLen);
@@ -798,6 +811,7 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
           New(NULL, TempBuffer, MondoQueueInfoList[i].BufferLen, char);
           Newz(NULL, TempLen, 1, unsigned short);
 
+          *TempLen = 4;
 
           /* Set the value */
           *TempBuffer = TempLong;
@@ -820,16 +834,18 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
           if (SvIOK(TempSV)) {
             TempLong = SvIVX(TempSV);
           } else {
-            TempLong = generic_bitmap_encode((HV *)SvRV(TempSV), SysCallType, ItemCode);
+            TempLong = generic_bitmap_encode((HV *)SvRV(TempSV),
+                                             SysCallType, ItemCode);
           }
 
           /* Allocate us some buffer space */
-          New(NULL, TempBuffer, MondoQueueInfoList[i].BufferLen, char);
+          Newz(NULL, TempBuffer, MondoQueueInfoList[i].BufferLen, char);
           Newz(NULL, TempLen, 1, unsigned short);
-
+          *TempLen = 4;
+          
 
           /* Set the value */
-          *TempBuffer = TempLong;
+          Copy(&TempLong, TempBuffer, 4, char);
           
           init_itemlist(&ItemList[ItemListIndex],
                         MondoQueueInfoList[i].BufferLen,
@@ -1487,6 +1503,9 @@ queue_list(...)
   /* Did it fail somehow? */
   if (status != SS$_NORMAL) {
     XPUSHs(&sv_undef);
+    /* Cancel our context, just in case */
+    sys$getquiw(0, QUI$_CANCEL_OPERATION, &QueueContext, NULL, NULL, NULL, 0);
+  
     SETERRNO(EVMSERR, status);
   } else {
     /* We just loop as long as things are OK */
@@ -1505,6 +1524,9 @@ queue_list(...)
   if (GottaFree) {
     tear_down_itemlist(&QueueScanItemList[1], ItemsAdded);
   }
+
+  /* Cancel our context, just in case */
+  sys$getquiw(0, QUI$_CANCEL_OPERATION, &QueueContext, NULL, NULL, NULL, 0);
 }
 
 void
@@ -1522,7 +1544,7 @@ entry_list(...)
                                 /* allocated. When I try, wacky things */
                                 /* happen, so we fall back to this hack */
   int QueueStatus;
-  unsigned int QueueContext = -1;
+  int QueueContext = -1;
   char WildcardSearchName[] = "*";
   short WildcardSearchNameReturnLength; /* Shouldn't ever need this, but */
                                         /* just in case... */
@@ -1538,6 +1560,7 @@ entry_list(...)
                                 /* happen, so we fall back to this hack */
   int EntryStatus;
   int WildcardSearchFlags = QUI$M_SEARCH_ALL_JOBS;
+  int WildcardQueueSearchFlags = QUI$M_SEARCH_WILDCARD;
   short WildcardSearchFlagsReturnLength; /* Shouldn't ever need this, but */
                                         /* just in case... */
   long EntryNumber;
@@ -1546,6 +1569,7 @@ entry_list(...)
   short WildcardUserNameReturnLength;
   iosb EntryIOSB;
   int GottaFreeEntry, EntryItemsAdded;
+  int entry_count = 0;
   
 
   /* First, zero out as much of the arrays as we're using */
@@ -1554,9 +1578,8 @@ entry_list(...)
   
   /* Did they pass us anything? and was it real? */
   if ((items > 0) && (ST(0) != &sv_undef)) {
-
     /* Call build_itemlist here... */
-    EntryItemsAdded = build_itemlist(EntryScanItemList + 1, (HV *)SvRV(ST(0)),
+    EntryItemsAdded = build_itemlist(&EntryScanItemList[1], (HV *)SvRV(ST(0)),
                                 GETQUI_PARAM, OBJECT_ENTRY);
     GottaFreeEntry = TRUE;
   } else {
@@ -1572,21 +1595,22 @@ entry_list(...)
                 QUI$_ENTRY_NUMBER, &EntryNumber,
                 &EntryNumberReturnLength);
 
-  /* Did they pass us an entry? And was it meaningful? */
+  /* Did they pass us a queue? And was it meaningful? */
   if ((items > 1) && (ST(1) != &sv_undef)) {
     /* Call build_itemlist here... */
-    QueueItemsAdded = build_itemlist(QueueScanItemList + 1, (HV *)SvRV(ST(1)),
+    QueueItemsAdded = build_itemlist(QueueScanItemList, (HV *)SvRV(ST(1)),
                                 GETQUI_PARAM, OBJECT_QUEUE);
     GottaFreeQueue = TRUE;
 
   } else {
     /* Fill in the 'loop through the queues' item list */
-    init_itemlist(&QueueScanItemList[1], 1, QUI$_SEARCH_NAME,
+    init_itemlist(&QueueScanItemList[0], 1, QUI$_SEARCH_NAME,
                   WildcardSearchName, &WildcardSearchNameReturnLength);
+    QueueItemsAdded = 1;
     GottaFreeQueue = FALSE;
   }
   /* We always want the name */
-  init_itemlist(&QueueScanItemList[0], 255, QUI$_QUEUE_NAME,
+  init_itemlist(&QueueScanItemList[QueueItemsAdded], 255, QUI$_QUEUE_NAME,
                 QueueNameBuffer, &QueueNameBufferReturnLength);
   
   
@@ -1605,6 +1629,9 @@ entry_list(...)
     while ((EntryStatus == SS$_NORMAL) && (EntryIOSB.sts == JBC$_NORMAL)) {
       /* Stick the returned value on the return stack */
       XPUSHs(sv_2mortal(newSViv(EntryNumber)));
+
+      /* Debugging */
+      entry_count++;
       
       /* Call again */
       EntryStatus = sys$getquiw(0, QUI$_DISPLAY_JOB, &QueueContext,
@@ -1618,11 +1645,14 @@ entry_list(...)
 
   /* Now go give things back */
   if (GottaFreeQueue) {
-    tear_down_itemlist(&QueueScanItemList[1], QueueItemsAdded);
+    tear_down_itemlist(QueueScanItemList, QueueItemsAdded);
   }
   if (GottaFreeEntry) {
     tear_down_itemlist(&EntryScanItemList[1], EntryItemsAdded);
   }
+
+  /* Cancel our context, just in case */
+  sys$getquiw(0, QUI$_CANCEL_OPERATION, &QueueContext, NULL, NULL, NULL, 0);
 }
 
 void

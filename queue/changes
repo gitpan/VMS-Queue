@@ -105,3 +105,7 @@ Revision history for Perl extension VMS::Queue
 
 0.53  Fri Nov 20 9:33:03 1998
     - Took out some debugging code that'd been left in.
+
+0.54  Tue Dec 15 15:54:03 1998
+    - Fixed bugs in build_itemlist that kept it from actually working right
+    - Added queue to list of valid things you can get SCSNODE_NAME for
