@@ -1,13 +1,13 @@
 /* VMS::Queue - Get a list of Queues, or manage Queues
  *
  * Version: 0.01
- * Author:  Dan Sugalski <sugalskd@osshe.edu>
+ * Author:  Dan Sugalski <dan@sidhe.org>
  * Revised: 05-Dec-1997
  *
  *
  * Revision History:
  *
- * 0.01  05-Dec-1997 Dan Sugalski <sugalskd@osshe>
+ * 0.01  05-Dec-1997 Dan Sugalski <dan@sidhe.org>
  *       Snagged this source from VMS::Process, and gutted appropriately.
  *
  */
@@ -33,6 +33,7 @@ extern "C" {
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#include "ppport.h"
 #ifdef __cplusplus
 }
 #endif
@@ -76,9 +77,9 @@ typedef struct {char  *ItemName;         /* Name of the item we're getting */
 #define bit_test(HVPointer, BitToCheck, HVEntryName, EncodedMask) \
 { \
     if ((EncodedMask) & (BitToCheck)) \
-    hv_store((HVPointer), (HVEntryName), strlen((HVEntryName)), &sv_yes, 0); \
+    hv_store((HVPointer), (HVEntryName), strlen((HVEntryName)), &PL_sv_yes, 0); \
     else \
-    hv_store((HVPointer), (HVEntryName), strlen((HVEntryName)), &sv_no, 0);}   
+    hv_store((HVPointer), (HVEntryName), strlen((HVEntryName)), &PL_sv_no, 0);}   
 
 #define IS_STRING 1
 #define IS_LONGWORD 2
@@ -289,7 +290,7 @@ struct MondoQueueInfoID MondoQueueInfoList[] =
                OBJECT_QUEUE, S_QUEUE_OUTPUT),
   GETQUI_ENTRY(LOG_QUEUE, 31, IS_STRING, OUTPUT_INFO, OBJECT_ENTRY,
                S_ENTRY_BATCH),
-  GETQUI_ENTRY(LOG_SPECIFICATION, 39, IS_STRING, OUTPUT_INFO,
+  GETQUI_ENTRY(LOG_SPECIFICATION, 255, IS_STRING, OUTPUT_INFO,
                OBJECT_ENTRY, S_ENTRY_BATCH),
   GETQUI_ENTRY(MANAGER_NAME, 31, IS_STRING, OUTPUT_INFO, OBJECT_MANAGER,
                S_ANY),
@@ -865,6 +866,42 @@ int build_itemlist(ITMLST *ItemList, HV *HashRef, int SysCallType,
   return(ItemListIndex);
 }
 
+/* scan an itemlist for the SEARCH_FLAGS entry.  If found, force the
+   SEARCH_WILDCARD flag so we get a context from $GETQUI.  If not found,
+   add it.
+ */
+int force_wildcard(ITMLST *ItemList, int count)
+{
+  int i;
+  for (i=0;
+       i<count &&
+       ItemList[i].BufferItem.itmcode != QUI$_SEARCH_FLAGS;
+       i++)
+  {
+    continue;
+  }
+  if (i < count)
+  {
+    *(long *)ItemList[i].BufferItem.buffer |= QUI$M_SEARCH_WILDCARD;
+  } else {
+    unsigned short *TempLen;
+    long *TempBuffer;
+
+    New(NULL, TempBuffer, 4, long);
+    Newz(NULL, TempLen, 1, unsigned short);
+    *TempLen = 4;
+    *TempBuffer = QUI$M_SEARCH_WILDCARD;
+
+    init_itemlist(&ItemList[count],
+                  4,
+                  QUI$_SEARCH_FLAGS,
+                  TempBuffer,
+                  TempLen);
+    count++;
+  }
+  return count;
+}
+
 /* Takes an item list pointer and a count of items, and frees the buffer */
 /* memory and length buffer memory */
 void tear_down_itemlist(ITMLST *ItemList, int NumItems)
@@ -1205,7 +1242,7 @@ generic_bitmap_decode(char *InfoName, int BitmapValue)
   if (AllPurposeHV) {
     return(newRV_noinc((SV *)AllPurposeHV));
   } else {
-    return(&sv_undef);
+    return(&PL_sv_undef);
   }
 }
 
@@ -1232,24 +1269,24 @@ generic_valid_properties(HV *HashToFill, int ObjectType)
       
       /* Run through the options */
       if (MondoQueueInfoList[i].InOrOut & INPUT_INFO)
-        hv_store_ent(HashToFill, Input_InfoSV, &sv_yes, 0);
+        hv_store_ent(HashToFill, Input_InfoSV, &PL_sv_yes, 0);
       else
-        hv_store_ent(HashToFill, Input_InfoSV, &sv_no, 0);
+        hv_store_ent(HashToFill, Input_InfoSV, &PL_sv_no, 0);
 
       if (MondoQueueInfoList[i].InOrOut & OUTPUT_INFO)
-        hv_store_ent(HashToFill, Output_InfoSV, &sv_yes, 0);
+        hv_store_ent(HashToFill, Output_InfoSV, &PL_sv_yes, 0);
       else
-        hv_store_ent(HashToFill, Output_InfoSV, &sv_no, 0);
+        hv_store_ent(HashToFill, Output_InfoSV, &PL_sv_no, 0);
 
       if (MondoQueueInfoList[i].InOrOut & INPUT_ACTION)
-        hv_store_ent(HashToFill, Input_ActionSV, &sv_yes, 0);
+        hv_store_ent(HashToFill, Input_ActionSV, &PL_sv_yes, 0);
       else
-        hv_store_ent(HashToFill, Input_ActionSV, &sv_no, 0);
+        hv_store_ent(HashToFill, Input_ActionSV, &PL_sv_no, 0);
 
       if (MondoQueueInfoList[i].InOrOut & OUTPUT_ACTION)
-        hv_store_ent(HashToFill, Output_ActionSV, &sv_yes, 0);
+        hv_store_ent(HashToFill, Output_ActionSV, &PL_sv_yes, 0);
       else
-        hv_store_ent(HashToFill, Output_ActionSV, &sv_no, 0);
+        hv_store_ent(HashToFill, Output_ActionSV, &PL_sv_no, 0);
       
       hv_store(HashToFill, MondoQueueInfoList[i].InfoName,
                strlen(MondoQueueInfoList[i].InfoName),
@@ -1338,6 +1375,7 @@ generic_getqui_call(ITMLST *ListOItems, int ObjectType, int InfoCount,
 
   /* Did it go OK? */
   if ((status == SS$_NORMAL) && (GenericIOSB.sts == JBC$_NORMAL)) {
+    unsigned int *timeptr;
     /* Looks like it */
     AllPurposeHV = newHV();
     for (i = 0; i < LocalIndex; i++) {
@@ -1366,18 +1404,25 @@ generic_getqui_call(ITMLST *ListOItems, int ObjectType, int InfoCount,
         } else {
           hv_store(AllPurposeHV, OurDataList[i].ItemName,
                    strlen(OurDataList[i].ItemName),
-                   &sv_undef, 0);
+                   &PL_sv_undef, 0);
         }
         break;
       case IS_VMSDATE:
-        sys$numtim(ReturnedTime, OurDataList[i].ReturnBuffer);
-        sprintf(AsciiTime, "%02hi-%s-%hi %02hi:%02hi:%02hi.%hi",
-                ReturnedTime[2], MonthNames[ReturnedTime[1] - 1],
-                ReturnedTime[0], ReturnedTime[3], ReturnedTime[4],
-                ReturnedTime[5], ReturnedTime[6]);
-        hv_store(AllPurposeHV, OurDataList[i].ItemName,
-                 strlen(OurDataList[i].ItemName),
-                 newSVpv(AsciiTime, 0), 0);
+	timeptr = (unsigned int *)OurDataList[i].ReturnBuffer;
+ 	if ((timeptr[0] == 0) && (timeptr[1] == 0)) {
+	  hv_store(AllPurposeHV, OurDataList[i].ItemName,
+		   strlen(OurDataList[i].ItemName),
+		   &PL_sv_undef, 0);
+ 	} else {
+	  sys$numtim(ReturnedTime, OurDataList[i].ReturnBuffer);
+	  sprintf(AsciiTime, "%02hi-%s-%hi %02hi:%02hi:%02hi.%hi",
+		  ReturnedTime[2], MonthNames[ReturnedTime[1] - 1],
+		  ReturnedTime[0], ReturnedTime[3], ReturnedTime[4],
+		  ReturnedTime[5], ReturnedTime[6]);
+	  hv_store(AllPurposeHV, OurDataList[i].ItemName,
+		   strlen(OurDataList[i].ItemName),
+		   newSVpv(AsciiTime, 0), 0);
+ 	}
         break;
         /* No enums for now, so they become longs */
       case IS_ENUM:
@@ -1413,11 +1458,11 @@ generic_getqui_call(ITMLST *ListOItems, int ObjectType, int InfoCount,
     /* dandy? (Which is to say, did we return a normal status and an IOSB */
     /* status that matches our 'other ok' status?) */
     if ((status == SS$_NORMAL) && (GenericIOSB.sts == OtherOKIOSBStatus)) {
-      ReturnedSV = &sv_undef;
+      ReturnedSV = &PL_sv_undef;
     } else {
       /* I think we failed */
       SETERRNO(EVMSERR, status);
-      ReturnedSV = &sv_undef;
+      ReturnedSV = &PL_sv_undef;
     }
   }
   
@@ -1502,7 +1547,7 @@ queue_list(...)
 
   /* Did it fail somehow? */
   if (status != SS$_NORMAL) {
-    XPUSHs(&sv_undef);
+    XPUSHs(&PL_sv_undef);
     /* Cancel our context, just in case */
     sys$getquiw(0, QUI$_CANCEL_OPERATION, &QueueContext, NULL, NULL, NULL, 0);
   
@@ -1577,7 +1622,7 @@ entry_list(...)
   Zero(&EntryScanItemList, items < 1 ? 3: 99, ITMLST);  
   
   /* Did they pass us anything? and was it real? */
-  if ((items > 0) && (ST(0) != &sv_undef)) {
+  if ((items > 0) && (ST(0) != &PL_sv_undef)) {
     /* Call build_itemlist here... */
     EntryItemsAdded = build_itemlist(&EntryScanItemList[1], (HV *)SvRV(ST(0)),
                                 GETQUI_PARAM, OBJECT_ENTRY);
@@ -1596,12 +1641,12 @@ entry_list(...)
                 &EntryNumberReturnLength);
 
   /* Did they pass us a queue? And was it meaningful? */
-  if ((items > 1) && (ST(1) != &sv_undef)) {
+  if ((items > 1) && (ST(1) != &PL_sv_undef)) {
     /* Call build_itemlist here... */
     QueueItemsAdded = build_itemlist(QueueScanItemList, (HV *)SvRV(ST(1)),
                                 GETQUI_PARAM, OBJECT_QUEUE);
     GottaFreeQueue = TRUE;
-
+    QueueItemsAdded = force_wildcard(QueueScanItemList, QueueItemsAdded);
   } else {
     /* Fill in the 'loop through the queues' item list */
     init_itemlist(&QueueScanItemList[0], 1, QUI$_SEARCH_NAME,
@@ -1976,7 +2021,7 @@ queue_info(QueueName)
                                 JBC$_NOMOREQUE, &ReturnedJBCStatus,
                                 0);
   } else {
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
     SETERRNO(EVMSERR, Status);
   }
       
@@ -2035,8 +2080,12 @@ entry_info(EntryNumber)
       SubType |= S_ENTRY_PRINT;
     if (QueueFlags & QUI$M_QUEUE_TERMINAL)
       SubType |= S_ENTRY_PRINT;
-    if (EntryFlags & QUI$M_JOB_RETAINED)
+    if ((EntryFlags & QUI$M_JOB_RETAINED) ||
+	(EntryFlags & QUI$M_JOB_REFUSED) ||
+	(EntryFlags & QUI$M_JOB_PENDING) ||
+	(EntryFlags & QUI$M_JOB_SUSPENDED))
       SubType |= S_ENTRY_DONE;
+    if (!SubType) SubType |= S_ENTRY_PRINT;
 
     /* Make the call to the generic fetcher and make it the return */
     /* value. We don't need to go messing with the item list, since what we */
@@ -2045,7 +2094,7 @@ entry_info(EntryNumber)
                                 QUI$_DISPLAY_ENTRY, SubType, 1,
                                 JBC$_NOMOREENT, &ReturnedJBCStatus, 0);
   } else {
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
     SETERRNO(EVMSERR, Status);
   }
       
@@ -2226,14 +2275,14 @@ delete_entry(EntryNumber)
   /* If there's an abnormal return, then note it */
   if (Status != SS$_NORMAL) {
     SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
   } else {
     /* We returned SS$_NORMAL. Was there another problem? */
     if (KillIOSB.sts != JBC$_NORMAL) {
       croak(decode_jbc(KillIOSB.sts));
     } else {
       /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
+      ST(0) = &PL_sv_yes;
     }
   }
 }
@@ -2262,14 +2311,14 @@ delete_form(FormName)
   /* If there's an abnormal return, then note it */
   if (Status != SS$_NORMAL) {
     SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
   } else {
     /* We returned SS$_NORMAL. Was there another problem? */
     if (KillIOSB.sts != JBC$_NORMAL) {
       croak(decode_jbc(KillIOSB.sts));
     } else {
       /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
+      ST(0) = &PL_sv_yes;
     }
   }
 }
@@ -2300,14 +2349,14 @@ delete_characteristic(CharacteristicName)
   /* If there's an abnormal return, then note it */
   if (Status != SS$_NORMAL) {
     SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
   } else {
     /* We returned SS$_NORMAL. Was there another problem? */
     if (KillIOSB.sts != JBC$_NORMAL) {
       croak(decode_jbc(KillIOSB.sts));
     } else {
       /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
+      ST(0) = &PL_sv_yes;
     }
   }
 }
@@ -2361,14 +2410,14 @@ delete_queue(QueueName)
   /* If there's an abnormal return, then note it */
   if (Status != SS$_NORMAL) {
     SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
   } else {
     /* We returned SS$_NORMAL. Was there another problem? */
     if (KillIOSB.sts != JBC$_NORMAL) {
       croak(decode_jbc(KillIOSB.sts));
     } else {
       /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
+      ST(0) = &PL_sv_yes;
     }
   }
 }
@@ -2413,14 +2462,14 @@ start_manager(ManagerName)
   /* If there's an abnormal return, then note it */
   if (Status != SS$_NORMAL) {
     SETERRNO(EVMSERR, Status);
-    ST(0) = &sv_undef;
+    ST(0) = &PL_sv_undef;
   } else {
     /* We returned SS$_NORMAL. Was there another problem? */
     if (KillIOSB.sts != JBC$_NORMAL) {
       croak(decode_jbc(KillIOSB.sts));
     } else {
       /* Guess everything's OK. Exit normally */
-      ST(0) = &sv_yes;
+      ST(0) = &PL_sv_yes;
     }
   }
 }
@@ -2617,3 +2666,54 @@ create_queue(...)
   XSRETURN_YES;
 }
 
+ r                                                                                                                                                             A^  b  Öb  Sd  Od  ëd  ñd  Ñg  ,k  “k  il  Bm  dp  r  Qr  Lx  ‹Ä  ∑Ç  É  Œà  øè  xë  ßñ  ∂ò  C¨  2±  w∏  í∏  êπ  ìπ  !æ          	 p           ‡5          #O                Ä   ¸U  ˙r      ç   ,{   >˛         ó        
+   2   7  
+               7   ˆ  ï/  U  U  Î  è  e#  %  G*  …C  »o  Eî  =î  <°  º  ≈  ƒ  å"  Ω.  Î  Û∂  ;∏  ƒ   Ô   ñ  ˜  >  Ô  –  Ï    Ø  ≥  ¨  &  §    _  £    /  (  3  ;  o  Ê  ƒ     ˚  ∞	  #
+  £
+  q
+  1  ñ  I  ⁄  Z  ¨  ∑  †  ≠  ·  	    4  Û      ú  =  @  v  w  Z  d  Õ  Í  ~  Õ  ±  '  Ø    ﬂ  Ò  C  V  ÿ  {  ≥  ﬂ  &  
+  :  ê  á  „  ê  √  r    Z   u   !  €   .!  4!  ~!  Ê!  ‹!  "  î"  Ä"  t#  ç"  È#  N$  ˆ$  %  “$  Ÿ$  %  q%  Ì%  n&  6'  '   '  Ù)  "+  #+  â+  ‰+  ,  ,  Ä,  f,  ∏,  ∂,  Ù,  ~-  #.  .  .   .  ˘-  ∑.  ¨.  Í.  "/  $/  &/  ß/  ¥/  µ/  ≥/  ⁄/  C0  s0  •0  ◊0  Ÿ0  ‚0  ∑0  1  È0  t1  ≠1  ã1  !2  2  €2  ≈2  =3  h3  J3  √3  –3  Ä3  ÿ3  •3  ¸3  Œ3  #4  ú4  U4  V4  g4  Õ4  ü4  ¥4  ˛4  õ5  ã5  Z5  ›5  16  36  ”6  K7  }7  S7  X7  ®7  ´7  \8  |8  k8  -8  „8  µ8  »8  99  g9  ∂9  m9  ∏9  â9  å9  Ë9  †9  °9  U:  7:  :  [:  :  :  ñ:  ú:  y:  Ö:  ∂:  ;  ı:  Û;  ÷;  
+<  ’<  …<  Œ<  Â<  ‹<  Ê<  Ó<  ¯<  [=  o>  E@  F@  ∞@  √@  ´A  „A  ¸A  dB  mB  éB  „B  xC  ºC  ÓC  JD  ⁄D  ‰D  çE  †F  ôF  ≈F  ˙F  ¸F  8G  RG  nG  øG  ”G  PH  UH  kH  éH  õH  ∫H  ⁄H  ŒH  I  	I  QI  qI  êI  ÅI  J  ıI  rJ  oJ  _J  ”J  K  ÌJ  }K  äK  nK  «K  ´K  ºK  	L  ¯K  OL  L  L  |L  ŒL  M  M  M  5M  NM  8M  úM  ùM  ¬M  N  N  TN  ùN  ŸN  uO  ÚO  «O  Q  aR  ˙S  µS  lT  }T  –T  ËT  @U  ìU  õU  «U  ˙U  V  V  ˘V  aW  ¬W  ®W  X  X  X  X  `X  ûX  Y  ˙X  3Y  =Y  ?Y  FY  WY  BY  œY  ØY  dZ  IZ  åZ  [  ÏZ  0[  2[  ¯Z  ¶[  w\  ~\  ˜\  À\  q]  ¯]  í]  $^  	^  ^  ≈^  Ç^  Í^  ô_  7_  Á_  N`  ;`  p`  £`  Ö`  ﬁ`  ∆`  0d  >d  e  9e  ¡e  >f  @f  ›f  ·f  mg  Óg  Fh  @h  Æh  ‘h  i  i  hi  Üi  j  fj  ºj  új  ‚j  ÷j  2k  úk  ™k  Æk  ˛k  ]l  ?l  Xl  µl  m  m  ßm  ùm  ∞m  (n  én  Yo  o  «o  µo  8p  ˇo  Øq  iq  ˚q  ir  ˇr  ït  Œt  Ôt  kw  òw  πw  #x  x  ˙x  Ãx  z  ¯y  z  Hz  Fz  ©z  {  }{  Ó{  „{  |  d|  f|  v|  ï|  ù|  ≠|  Ã|  ,}  b}  F}  ÷}  ~  ~  _~  j~  ê~  ™~  ¸~  ˜~  $  ¨  t  Ä  —  
+Å   Å  -Å  íÅ  ¿Å  äÇ  wÇ  Ç  RÇ  hÇ  É  É  É  ŒÉ  ïÉ  FÜ  á  Æá  à  â  ââ  ëâ  ıâ  ﬁä  Bã  Fã  ˝ä  ≈ã   å  oå  Hå  éå  ©å  ¨å  ¿å  ç  ±ç  9é  Ëé  ƒé  ¯é  >è  cè  Mè  ê  dê  Rê  »ê   ë  ≠ë  ìë  ◊ë  ¶ë  Ÿë  ƒë  _ë  Êë  Ûë  Tí  Qí  ™í   í  qì  Wì   ì  ±ì  Èì  œî  Øî  sï  üï  ∆ï  “ï  ‡ï  ?ñ  tñ  gó  Bó  Zó  áó  `ò  hô  1ù  
+û  ◊ü  ß†  :°  _°  8°  È°  £°  ˘°  D¢  7¢  ∏¢   ¢  £  +£  i£  √£  §  §  ,§  x§  ï§  „§  œ§  •  	•  R•  Ø•  ∫•  †•  N¶  M¶  p¶  ®¶  Õ¶  Ω¶  Gß  Eß  Aß  )ß  /ß  0ß  5ß  ‘ß  ªß  5®  H®  `®  Ô®  Ì®  r©  —©  Â©  ¯©  /´  4´  C¨  p≠  ïØ   ∞  ±  ö±  ≤  ≤  m≤  k≤  …≤  q≤  ı≤  3≥  o≥  p≥  A≥  H≥  ÿ≥  ⁄≥  `¥  C¥  o¥  †¥  ›¥  9µ  Û¥  	∂  &∂  ?∂  y∂  à∂  å∂  §∂  Ì∂  X∑  e∑  h∑  i∑  Ó∑  ∏  º∏  *π  ¶π  6∫  ü∫  á∫  t∫  u∫  ˆ∫  ∂∫  -ª  ≤æ  ∏R  ∞3  »  ‹  ¨"  6  ö:  ¸_  ¿x  ´è  ‰ó  ∫  Ü  q  ô  ﬁ  ‚  Ü  @  ˚$  I%  ò%  Õ%   &  ‰,  "0  ^0  T2  ﬂ4  æ5  |5  ˛;  &>  eN  4Y  Y  0Y  Œc  Ïe  wh  ôh  `n  tn   ~  ±Ä  ıÄ  ÷É  Ÿà  â  >ì  Øì  î  ‘î  .ï  û  Î§  W•  !¥  Ç∏  Â∫  lª  º  Ü   U  Â  M  ß  ö  √  —  0  D    l  ¿  «  °  Í  !  ;  ﬁ  ó    ö    √   	  j
+  ¨
+  ∑
+  º
+  √
+  S  ü  ¶    —  ﬂ  I  &  ñ  •  ⁄  ∞  Á  Ò  N  5  ¿  ∂  í  “    '  <  n  r  å  Ÿ  ˜  C  Y  &  ,  _  °    Ÿ  ©  ≠    Œ    Ò    A  Z    ª  ñ  ±  Ÿ     ∂    z  @  ∆    ï  ÷  q  Á  É  ±  £   ˙   !  n!  ≈!  ¨!  ˆ!  ;"  I"  g"   "  ®"   #  =#  Â"  A#  #  €#  $  m$  v$  _$  ≥$  %  d%  —%  •%  ®%  Ω%  î%  ¬%  ˜%  D&  4&  è&  ®&  Â&  Å'  Ö'   '  (  ÿ'  ﬂ'  =(  ä(  ã(  †(  `*  a*  m*  r*  1+  „+  Ì+  Ã,  ¬,  ı,  Œ,  -  ±-  .  </  ï0  ’0  Í1  /2  A2  ∆2  ñ3  Û3  ’3   4  !4  _4  π4  ¿5  6  s6  Ñ6  ›6  –6  ◊6  7  7  ~7  m7  —7  Å8  É8  ›8  “8  T9  º9  ê9  ì9  Q:  :  Å:  Ç:  à:  ≥:  ‚:  —:  p;  Q;  g;  ü;  ›;  
+=  =  Z=  €>  ’C  ◊C  ÃC  ÎD  §E  6F  (F  ﬁF  ÏG  G  ÿH  ÌH  $I  LI  ñI  ÜI  -J  øK  ﬂK  —K  L  ØL  ¯L  AM  ˇM  N  N  àN  ^N  æN  O  ¶O  lP  nP  #Q  (Q  ÉQ  R  R  zR  {R  ÁR  ÉS  tS  õT  ÛT  ÌT  :U   U  XU  BU  uU  \U  kV  …W  îW   X  JX  HX  qX  ñX  òX  ëX  ˜X  ÑY  ÀY  Z  Z  ûZ  [  5\  U\  î\  ]  ?]  L]  T]  x]  Ç]  ?^  ò^  É^  ö_  ú_  °_  ˆ_  ‡_  `  °`  ª`  Ÿ`  Í`  Àc  Òc  Zd  xd  wd  ¡d  Üe  ùe  µe  †e  æe  Af  Ff  Ÿf  üg  ug  …g  Úg  ˜g  ˘g  Ûh  ˚h  <i  =i  Vi  qi  Øi  Ûi  ¯i  Xj  nj  Ìj  k  wk  zk  ±k  »k  yl  ‡l  Ùl  Bm  m  Hm  Öm  »m  7n  Âm  n  n  Ñn  ‘o  ûo  bp  kp  mp  p  np  op  ùp  Òp  q  <q  ¸q  #r  ur  Ñr  Úv  ıv  Jw  ∑w  *x  nx  Œx  ∑x  Ty  Öy  ßy  €{  Õ{  à|  Ï|  ‹|  }  V}  à}  h}  ~  ~  5~  Ä  	Ä  √  Œ  HÄ  ∞Ä  îÄ  Å  #Å  îÅ  ÕÅ  °Å  ·Å  ´Å  {Ç  óÇ  MÇ  °Ç  !É  ÔÇ  +É  ÈÇ  ¯Ç  UÉ  °É  ÙÉ  ıÉ  ˆÉ  ŸÉ  ÇÑ   Ö  *Ö  Ü  }Ü  !à  @à  ãà  …à  ¸à  ˙â  ¨ä  Gã  ∞ã  å  Lå  gå  Gå  Gç  sç  ôé  7è  Ñè  Uê  ºê  £ê  îë  [í  wí  Õí  Äì  ∏ì  ëì  ‚ì  ¥ì  ”ì  Ÿì  î  î  ¡ì  Ëì  Ãî  ±î  ï  ï  ıî  ˘î  Qï  √ï  vï  yï  áï  Wñ  ñ  6ó  Wó  éó  Üó  2ò  Sò  	ô  zô  ﬂû  ·û  óü  Ãü  Õü  †  7†  “†  ~°  ÿ°  ¢  ï£  §  7§  •  _•  ç•  ◊•  t¶  x¶  ò¶  ß  •ß  ™ß  C©  #©  j©  ™  ”©  !´  ;´  Ÿ´  ƒ´  ≠  æ≠  ¿≠  RÆ  SÆ  |Æ  ˆÆ  Ø  eØ  hØ  D∞  Å∞  g±  ≤  ≥  ó≥  ¥  g¥  É¥  ´¥  ≤¥  …¥  `µ  .∂  Y∂  ∫∂  º∂  ö∂  „∂  W∑  2∏  9∏  :∏  ò∏  ß∏  ^∏  —∏  π∏  å∏  π  )π  ,π  Bπ  Eπ  Uπ  V∫  ∫  v∫  »∫  Á∫  ¡∫  ‘ª  º  fΩ  æ  òæ  «æ    R  ;  ^  Dk  nt  `ö  û  ˛•  ò™  eí  mô  ˘¢  ï  h  0,  Ñ8  Ö8  Ëh  k  {  º|  Ã~  eë  û  ˜Ø  Ê&  5  —O  ƒ[  ÿd  Mk  ¢ç  |    T'  {+  æ/  JN  4Ü  ä  $ä  +é  ~õ  T¥      '  o  ¢  3  «  µ  ¶&  ∫'  )  g3  ^6  €=  d>  UE  ÿE  ⁄E  JS  ÉU  `Y  SY  E]  çh  l  Ôk  êo  3u  ;y  I~  í  Ä  ±  BÄ  *Ü  ;á  ‘à  Vâ  *ä  €ä  >ë  sí  Tî  üô  ÿö  õ  `õ  ƒù  Éû  ≠∞  »∞  Î≥  ∑  ˚ª  ıæ  
+   	      %   &      "   2   3   9   H   q   ~   ç   †   ¨   ¿   ∂   …   ˇ             +  1  '  2    v  h  ó  ñ  ¢  ∑  ±  ª  Ÿ  …  Ã  œ    Ù  ı    ’  ÷  +      _  B  G  K  w  ´  ¨  ñ  ≥  π  À  Ã  Õ  ˙  Û    )    L  >  g  Å  U  `  a  ê  z  ~  î  ô  •  ¶  ©  ≠  ±  ö  Â  ”  ‹  ·  ∂  ˆ  Ë  ˛  ‘  8  9  M  [  †  Å  ì  ï  ƒ  ø  ü  ≠  Î  „  	        ˚  N  ,  -  Q  T  8  :  G  r  à  í  ñ  º  ®  ‚  ’  œ  Ò  ‹            ,  ?  0  1  (  *  I  9  |  ]  è  ∞  ù  ¡  µ  ∂            '  M  4  7  g  P  U  ~  v  Ñ  Ö  Ω  ™  ç  “  ¨  ≠  Ø  ÿ  ∏  ª  º  ˘  Á       *  )  +  ,    
+    9    #  %    K  >  S  Y  [  P  Ü  e  a  æ  ë  ñ  ≠  Æ  ¥  µ  ˝  —  ”  ˇ   	  Ò  ⁄  	  ˜  ¯  ˘  ˙  ¸  J	  *	  Q	  X	  Z	  m	  °	  Å	  Ç	  
+  ¯	  
+  ≤	  æ	  0
+  :
+  R
+  h
+  H
+  P
+  ß
+  
+  Å
+  à
+  ï
+  ù
+  z
+  Ê
+  ﬁ
+  ®
+  ∞
+  ª
+  ø
+  ≈
+  –
+    "  	      $  f  :  D  E  Z  0  l  t  }  ƒ  é  À  ”  ú  ù  ◊  ﬁ  1  Ë  2  Ï  M  %  &  0  9  Ü  î  â  •  u  Å  ¬  …  ∑  ›  È  Ó  F  .  =  
+        e  L  P  k  )  6  †  °  £  q  •  á  à  ç  ‹  ≤  Æ    2  4  ˆ  ˝  q  j  l  `  o  <  B  N  ≠  ì  ù  û  ·  9  (  Í          %  U  Z  _  G  P  +  î  h  i  |  ~  Ÿ  ¬  6  7  8  Y  K     %  s  ã  z  É  ê  î  —  „  ·  €  ¬  ”    $  6  ¢  ô  ù  ^  h  s  z  è  ë    ¸  
+  È  ı    -  .  e  i  q  r  |  ç  ö  §  £  ∫  Ø  æ  µ  ƒ  „  ‰    !  7  3  G  ]  O  z  è  Ö  •  ™  Ë    '  /  >  C  L  s  o    á  â  î  ù  õ  ∂  Õ  ”  ‘  '  Ÿ  Ò  ¸  6  T  ˇ  W  &  X  Z  -  <  ì  £  ç  í  ∑  “  ÷  º  ¿  ı  ˇ  !  I  .  4  6  A  ^  g  m  i  õ  ™  È  Ì  Ó      ¸    	      I  (  Q  3  5  f  S  T  Ö  ¶  ©  ∂    ¬  "    ‰  2        P  >  +  z  ∞  ∂  ~  œ  É  ê  ì  ü    ˝  
+  Î  D  :  2  7    T  X  @  N  R  t  ≤  ∑  Ã  ≥  Y  ]  R  l  É  p  x    ÷  π  ¿  ¡  ƒ  ü    Ô  ˚    +    E  L  H  Ç  z  ≤  ¿  Ï  —    ‰  	  J  _  z  2  #  /  ì  O  R  ?  W  _  b  À  q  Â  Ï  ˚  ú  ®  Ö  é  ê  „  Ò  ﬁ  ;    ]  0  6  B  `  k  9  °  ¢  ß  ™  ó  ô  œ  ¥  ø  ‚  ‰  »            M  T  ¬  Y  i  €  Ë  Ñ  ç  õ  !   %   &   )   ˜  0       ?   E      J      Q          ¥   ≠   Á   Ω      ø   ¡   √   ≈   —   !  8!  ;!  <!  ?!  }!  !  Ü!  (!  -!  0!  6!  A!  Y!  l!  w!  L!  M!  W!  œ!  ú!  ›!  Ω!  "  À!  Á!  ˝!  Î!  »!  w"  Ñ"  á"  ="  N"  W"  ¡"  †"  •"  ¶"  ‘"  ƒ"  x"  z"  	#  #  ⁄"  Ô"  .#  0#  #  a#  c#  T#  W#  m#  q#  œ#  ª#  ¶#  Ç#  à#  ö#  ¸#  “#  ”#  ˇ#  $  $  ˘#  À#  4$  #$  $  $  i$  M$  O$  V$  W$  Y$  ù$  q$  {$  }$  Ñ$  `$  b$  ⁄$  ≠$  ¬$  %  Ò$  »$  &%  -%  4%  ?%  %  Y%  ]%  à%  E%  é%  è%  W%  ñ%  y%  Å%  ô%  €%  π%  ¶%  À%  Ã%  ¨%  &  ‰%  &  &  !&  9&  m&  L&  M&  õ&  ∞&  ≥&  £&  á&  à&  •&  7'  √&  ›&  È&  $'  q'  Q'  Ç'  c'  ê'  ©'  ö'  Ω'  ¬'  
+(  Û'  (  Ê'  (  "(  (  %(  7(  >(  j(  s(  \(  c(  Ö(  l(  ¢(  ì(  §(  ™(   (  ÿ(  Ë(  Ò(  ı(  ˜(  ¯(  )  )  )  )  3)  6)  9)  C)  M)  K)  U)  b)  |)  ç)  ü)  †)  õ)  ¢)  £)  ∞)  ƒ)  À)  Ÿ)  ⁄)  Û)  ˜)  *   *  *  
+*  @*  4*  H*  ≠*  ≤*  “*  …*  À*  É*  Â*  ‹*  ﬂ*  ú*  ¢*  +  +  	+  +  '+  (+  )+  N+  =+  @+  J+  n+  f+  |+  à+  ë+  Æ+  º+  Í+  Ÿ+  Ù+  ˜+  ˙+  €+  ,  Å,  Ö,  Ç,  ë,  K,  =,  ô,  ©,  i,  u,  ÿ,  Â,  ø,  Ú,  Õ,  '-  (-  ˆ,  --  .-  ˇ,  -  -  _-  :-  j-  o-  ù-  ™-  ´-  å-  ç-  é-  è-  .  .  ≤-  ª-  ø-  Ù-  0.  .  -.  /.   -  ;.  .  z.  e.  o.  E.  +.  ù.  Ç.  °.  ò.  ∆.  œ.  ÷.  ⁄.  
+/  /  ‰.  /  A/  -/  ù/  â/  ó/  ∏/  Æ/  §/  ÿ/  ø/  √/  Ë/  „/  Ù/  ˛/  ?0  .0  
+0  0  k0  m0  u0  w0  ∂0  ª0  Æ0  1  ˘0  Q1  y1  ^1  l1  m1  1  1  1  !1  11  51  æ1  é1  d1  …1  €1  ©1  ˚1  —1  1  72  
+2  2  )2  s2  ?2  E2  F2  Q2  H2  é2  e2  ]2  ∂2  |2  √2  …2  ®2  ´2  ˙2  »2  Õ2  ”2  È2  <3  3   3  3  3  3  3  3  3  3  3  3  3  &3  -3  63  ~3  B3  á3  _3  d3  m3  L3  ⁄3  ì3  Í3  ™3  3  ¡3  Æ3  Ø3  4  4  Ê3  )4  "4  u4  K4  R4  W4  `4  L4  ∆4  ∫4  ê4  s4  v4  x4  y4  ‚4  ´4  „4  ≥4  Ω4  ¬4  ï4  £4  ˚4  —4  ”4  Ÿ4  ‡4  N5  R5  ^5  ;5  >5  B5  °5  [5  ∂5  ª5  l5  º5  n5  ⁄5  ¡5  Œ5  ‘5  ÷5  6  Á5  6  6  6  ‰5  Ë5  œ5  (6  È5  -6  56  n6  A6  }6  F6  Å6  S6  L6  ö6  \6  d6  ©6  i6  k6  l6  ä6  Ã6  ô6  ⁄6  ±6  ﬂ6  π6  ∆6  œ6  ≤6  7  7  6  ˝6  7  7  L7  #7  `7  7   7  i7  *7  07  77  =7  A7  B7  å7  y7  |7  Z7  Ø7  ≤7  ¥7  ›7  18  ¢7  √7  «7  "8  8  
+8  R8  Î7  ˆ7  v8  a8  c8  d8  ˝7  8  á8  q8  %8  '8  .8  28  88  û8  è8  £8  í8  I8  K8  π8  Y8  ï8  9  9  ÿ8  Î8  …8  œ8  29  Ì8  Ó8  49  Û8  ˙8  H9  J9  39  ¶9  ¡9  Å9  ö9  õ9  ‰9  ∞9  ˘9  Ÿ9  :  S:  3:  8:  \:  :  :  /:  ):  -:  §:  D:  ™:  K:  N:  l:  ;  Ì:  Ò:  ";  &;  -;  U;  E;  J;  [;  _;  f;  û;  √;  ø;  ƒ;  ˙;  ˝;  <  È;  Ó;  z<  |<  n<  %<  L<  á<  @<  ¨<  ö<  ∞<  Õ<   <  Ã<  Í<  =  =  =  *=  &=  @=  3=  J=  ^=  f=  =  ì=  ó=  ”=  À=  Ë=  ‘=  ¸=   >  >  >  >  0>  .>  4>  ?>  Y>  P>  c>  n>  {>  z>  v>  ì>  ñ>  õ>  ∞>  “>  …>  Ë>  Ï>  ?  ?  ˛>  K?  F?  W?  d?  Z?  e?  [?  k?  n?  ë?  è?  ¢?  µ?  Ã?  ≈?  €?  Ï?  Ú?  ı?  ¸?  	@  @  @  √?  M@  O@  @  1@  9@  >@  ?@  C@  H@  @  g@  k@  p@  t@  R@  è@  î@  ù@  †@  £@  ®@  ∂@  ª@  ∆@  »@  “@  ÷@  ‡@  Ì@  Î@  ˘@  ˙@  ˝@  ˛@  A  A  A  )A  8A  6A  GA  MA  QA  ^A  WA  cA  ïA  °A  £A  ≠A  ØA  ¬A  ¡A  ∆A  ‘A  “A  ÷A  ‹A  ÏA  ÈA  ÒA  ÓA  B  B  
+B  B  =B  3B  4B  6B  8B  %B  'B  EB  *B  -B  JB  MB  RB  TB  WB  `B  zB  {B  }B  ÜB  òB  úB  ùB  ïB  §B  °B  ∫B  øB  ∑B  “B  ‘B  ›B  €B  ÍB  ˛B   C  C  	C  C  C  "C  C  +C  9C  :C  =C  NC  RC  VC  YC  gC  C  öC  ùC  •C  °C  ÚC  ÌC  D  @D  0D  4D  ID  jD  ÄD  êD  òD  ôD  ∫D  ÍD  ÷D  ÊD  %E  )E  7E  ]E  PE  [E  {E  dE  yE  ∞E  µE  ÀE  ¥E  ÆE  ÚE  ÙE  ›E  „E  F  F  	F  F  >F  &F  +F  2F  gF  MF  QF  TF  UF  VF  }F  ÄF  yF  kF  pF  êF  âF  äF  ∂F  «F  ÂF  ÁF  ËF  ÈF  ÛF  *G  G  3G  7G  FG  QG  TG  YG  VG  jG  iG  uG  wG  ≈G  úG  §G  •G  ›G  ∞G  ≤G  ¥G  &H  H  H  :H  AH  DH  H  *H  TH  4H  7H  <H  =H  ÇH  ]H  

@@ -1,8 +1,0 @@
-CHANGES
-Makefile.PL
-MANIFEST
-Queue.pm
-Queue.xs
-readme
-t/basic.t
-
